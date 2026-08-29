@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+Thumbs.db
+
+# Editors
+*.swp
+*.swo
+*.swn
+*~
+.netrwhist
+.vscode/
+.idea/
+
+# Node (in case build tooling is added here later)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Build output / caches
+dist/
+.cache/
+*.log

@@ -1,0 +1,20 @@
+The website already has a lot of great information, photos, and examples of what Dream World Cirque offers. I think the biggest improvement would be organizing the content a little differently and giving the main services their own pages, rather than having so much information grouped together.
+
+I would keep the main navigation pretty simple so it doesn't feel overwhelming. Something like:
+
+  Home | About | Services ▼ | Gallery | Contact / Get a Quote
+
+  Under the Services dropdown, we could have separate pages for:
+
+Acts & Shows
+Ambient Entertainment
+Weddings & Private Events
+Corporate Events
+Film, TV & Productions
+Equipment Rentals
+Costume Rentals
+This keeps the top navigation clean and easy to use while still giving each major service its own dedicated page.
+
+Also you should definitely have a section to showcase reviews/testimonials and all your social media links! 
+
+
