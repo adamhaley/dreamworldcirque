@@ -30,3 +30,6 @@ pnpm-debug.log*
 dist/
 .cache/
 *.log
+
+# Original source photography — see assets/img/ for the copies the site uses
+/DWC/
