@@ -1,0 +1,9 @@
+SET UP STAGING HOSTING
+FIX UP CODETTE-ISMS
+BUILD OUT SUB PAGES PER info.txt
+FOLLOW UP ON VIDEO FOR HERO
+CONFIRM TEXT BLURBS (after staging hosting set up)
+GET REAL TESTIMONIAL QUOTE FROM CLIENT (Yvonne Brown / CEDIA Expo Atlanta — placeholder wording in site.json needs to be swapped for the real quote)
+COMPRESS/OPTIMIZE IMAGES IN assets/img (source photos are 600KB-2.4MB straight from camera)
+CLEAN UP DWC/ SOURCE FOLDER ORGANIZATION (now gitignored, kept locally as source of truth for assets/img)
+
