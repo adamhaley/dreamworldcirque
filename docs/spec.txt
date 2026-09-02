@@ -13,8 +13,5 @@ Corporate Events
 Film, TV & Productions
 Equipment Rentals
 Costume Rentals
+
 This keeps the top navigation clean and easy to use while still giving each major service its own dedicated page.
-
-Also you should definitely have a section to showcase reviews/testimonials and all your social media links! 
-
-
