@@ -904,6 +904,23 @@ a {
   bottom: -6rem;
 }
 
+.page-title-bar {
+  text-align: center;
+  padding: var(--section-space) 0 calc(var(--section-space) * 0.5);
+}
+
+.page-title-bar .button-row {
+  justify-content: center;
+}
+
+.masthead-subheading {
+  margin: 0.5rem 0 2rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 3.5vw, 2.5rem);
+  color: var(--color-muted);
+}
+
 .spotlight-media-circle {
   width: min(100%, 26rem);
   aspect-ratio: 1 / 1;
