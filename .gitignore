@@ -33,3 +33,6 @@ dist/
 
 # Original source photography — see assets/img/ for the copies the site uses
 /DWC/
+
+# Legacy contact-form export — contains customer PII (names, emails, IPs)
+/docs/legacy-leads/
