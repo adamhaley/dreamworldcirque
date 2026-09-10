@@ -1,0 +1,159 @@
+{
+  "source": "Jena Carpenter email, \"Other Cirque Websites and FAQ Content\", 2026-09-03",
+  "note": "Roadmap: this content is a candidate for ingestion into a future Postgres-backed RAG system for the chat widget. Not wired up yet.",
+  "items": [
+    {
+      "question": "What makes Dream World Cirque different from other Cirque entertainment companies?",
+      "answer": [
+        "At Dream World Cirque, we don't simply provide performers — we create experiences.",
+        "For more than two decades, we've been bringing extraordinary Cirque entertainment to life through world-class performers, imaginative concepts, beautiful fashion-inspired costuming, innovative specialty acts, and immersive entertainment designed specifically for each event.",
+        "Our greatest specialty is customization. Whether you come to us with a fully developed creative vision or simply a spark of an idea, we love collaborating with our clients to create something unforgettable.",
+        "From elegant and sophisticated to whimsical, fantastical, glamorous, edgy, or completely unexpected, our world is limited only by imagination."
+      ]
+    },
+    {
+      "question": "What kinds of events does Dream World Cirque perform at?",
+      "answer": [
+        "Almost anywhere there's an audience to amaze!",
+        "Dream World Cirque creates entertainment for corporate events, galas, conventions, trade shows, weddings, holiday celebrations, private parties, Bar & Bat Mitzvahs, Sweet 16s, festivals, nightclubs, resorts, brand activations, film and television productions, commercials, music videos, photo shoots, and much more.",
+        "From an intimate celebration to a large-scale production, we tailor the entertainment to the event, venue, audience, and vision."
+      ]
+    },
+    {
+      "question": "Can you create completely custom entertainment for our event?",
+      "answer": [
+        "Absolutely — it's one of our favorite things to do.",
+        "We can customize performances around your event's theme, colors, music, storyline, brand, aesthetic, or creative concept. This can include specialty choreography, characters, costuming, apparatus, music, staging, entrances, audience interaction, and more.",
+        "We can work within an existing creative direction or collaborate with you from the very beginning to develop an entire entertainment concept."
+      ]
+    },
+    {
+      "question": "I have an idea or theme, but I'm not sure what entertainment I need. Can you help?",
+      "answer": [
+        "Yes! You don't need to have it all figured out before contacting us.",
+        "Tell us about your event, your guests, your venue, and what you want the experience to feel like. From there, we'll help you explore possibilities and recommend acts, performers, costumes, staging, and entertainment formats that bring your vision to life.",
+        "Some of our favorite productions have begun with a client simply saying, \"I have this crazy idea...\"",
+        "We love crazy ideas. The crazier the better! We believe in the power of your vision and we're here to support it by bringing it to life in an elegant, unique, curated, & safe way."
+      ]
+    },
+    {
+      "question": "What kinds of performers and specialty acts do you offer?",
+      "answer": [
+        "Our extensive roster includes aerialists, contortionists, acrobats, hand-balancers, stilt dancers, fire performers, LED performers, dancers, jugglers, specialty characters, musicians, and other exceptional variety artists.",
+        "Our aerial repertoire includes Silks, Lyra/Aerial Hoop, Hammock, Trapeze, Aerial Net, and other specialty apparatus, with additional acts including Cyr Wheel, Adagio, Acrobatics, Tight-wire, Chair Hand-balancing, and more.",
+        "Because our repertoire is continually evolving, we encourage you to contact us if you're looking for something unusual. If it belongs in the world of Cirque, there's a very good chance we can help create it."
+      ]
+    },
+    {
+      "question": "Can you provide both ambient entertainment and featured performances?",
+      "answer": [
+        "Yes — and combining the two can create an especially immersive event.",
+        "Ambient performers can greet, mingle, pose for photos, interact with guests, and transform the atmosphere as people arrive. Featured specialty acts can then create breathtaking focal moments throughout the event.",
+        "We can also combine ambient entertainment, featured acts, and short shows into a seamless entertainment package designed around your event schedule."
+      ]
+    },
+    {
+      "question": "Can Dream World Cirque create a full Cirque show?",
+      "answer": [
+        "Yes.",
+        "In addition to individual specialty acts, Dream World Cirque can create complete Cirque-style productions incorporating multiple performers, choreography, music, characters, costuming, staging, aerial arts, acrobatics, dance, and other specialty disciplines.",
+        "Productions can be adapted to an existing theme or developed as an original concept specifically for your event."
+      ]
+    },
+    {
+      "question": "Can you coordinate costumes with our theme or event design?",
+      "answer": [
+        "Definitely.",
+        "Costuming is an important part of the Dream World aesthetic. We have an extensive collection of elaborate, fashion-inspired Cirque costumes representing a wide range of themes and styles.",
+        "We can coordinate existing costumes with your event's colors and creative direction, modify looks when appropriate, or explore custom-designed options for productions requiring something truly unique."
+      ]
+    },
+    {
+      "question": "Do you provide aerial rigging and specialty performance equipment?",
+      "answer": [
+        "Yes. We offer professional performance equipment including adjustable free-standing aerial rigs, specialty platforms and performance boxes, BubbleSpheres, aerial bartending chandeliers, and other Cirque equipment.",
+        "Installation and rigging services are also available depending upon the requirements of the venue and production."
+      ]
+    },
+    {
+      "question": "How much space and ceiling height do you need for aerial performances?",
+      "answer": [
+        "It depends upon the aerial act and apparatus.",
+        "Some aerial performances require significant ceiling height, while others can be adapted to more intimate spaces. We also have adjustable free-standing aerial rigs that can make aerial entertainment possible in venues where traditional overhead rigging isn't available.",
+        "Send us your venue dimensions, ceiling height, photographs, floor plans, or rigging information and we'll help determine the best options for your space.",
+        "Safety always comes first, and all aerial installations and performance plans must be appropriate for the venue and equipment being used."
+      ]
+    },
+    {
+      "question": "What if our venue can't accommodate aerial performances?",
+      "answer": [
+        "There is still an entire world of Cirque available to you!",
+        "Contortion, hand-balancing, acrobatics, juggling, stilt performance, dance, LED entertainment, fire performance where permitted, interactive characters, specialty ground acts, and other entertainment can create an incredible Cirque experience without overhead rigging.",
+        "We can help design an entertainment package specifically around the possibilities of your venue."
+      ]
+    },
+    {
+      "question": "Are your performers professionally trained?",
+      "answer": [
+        "Yes. Dream World Cirque works with highly skilled professional artists from exceptional performance backgrounds, including former Cirque du Soleil performers, professional dancers, world-class rhythmic gymnasts, accomplished aerialists, acrobats, and specialty artists.",
+        "Beyond extraordinary technical ability, we look for performers who possess something equally important: presence, artistry, professionalism, and the ability to genuinely connect with an audience."
+      ]
+    },
+    {
+      "question": "Do you provide insurance?",
+      "answer": [
+        "Yes, we carry the highest level of Liability Insurance and each one of our performers also carries their own policy, so you are protected under an umbrella of liability when you work with us.",
+        "We can also generate a COI with your company's name, address, and any other specific wording you require to ensure all your risk management needs are handled leading up to the event.",
+        "In our 21 years of performing at thousands of events all over the world, we have never had to use our insurance or had any issues with safety, so you can rest assured that we care as much or more than you do about making sure that every safety protocol is followed to make absolutely sure that your performances go off without a hitch!"
+      ]
+    },
+    {
+      "question": "Do you travel outside Los Angeles and Las Vegas?",
+      "answer": [
+        "Absolutely.",
+        "Dream World Cirque is based in Los Angeles and Las Vegas, but our performers and productions are available for events throughout the United States and internationally.",
+        "We've always believed that imagination shouldn't have geographical boundaries, plus we love the opportunity to travel, experience new cultures and environments, and bring the magic of performance to audiences all over the world."
+      ]
+    },
+    {
+      "question": "Do you provide performers for film, television and commercial productions?",
+      "answer": [
+        "Yes. Dream World Cirque artists are available for television, film, commercials, music videos, advertising campaigns, photo shoots, and other media productions.",
+        "Our performers have appeared across major television, film, fashion, and media projects including Grey's Anatomy, The Polar Express, Alice in Wonderland, The Greatest Showman, Vegas, and Water for Elephants, among others.",
+        "We understand that production work has its own unique requirements and can help match the right performers, skills, costumes, and specialty equipment to the creative vision."
+      ]
+    },
+    {
+      "question": "How far in advance should we book?",
+      "answer": [
+        "We recommend contacting us as early as possible, particularly for large productions, custom concepts, holiday dates, and events requiring specific specialty artists.",
+        "That said, events don't always happen on a perfect timeline! If your event is coming up quickly, reach out anyway. Depending upon performer and equipment availability, we may still be able to create something spectacular."
+      ]
+    },
+    {
+      "question": "How much does Cirque entertainment cost?",
+      "answer": [
+        "Because nearly every Dream World Cirque experience is customized, pricing varies depending upon the number and type of performers, length of performance, location, costuming, equipment, rigging, rehearsal requirements, customization, and overall scope of the production.",
+        "Rather than offering one-size-fits-all packages, we prefer to learn about your event and recommend options that make the greatest impact within your vision and budget."
+      ]
+    },
+    {
+      "question": "Can you work with our event planner, producer, venue, or creative team?",
+      "answer": [
+        "Absolutely.",
+        "We regularly collaborate with event planners, producers, designers, venues, production companies, agencies, choreographers, photographers, directors, and other creative professionals.",
+        "We love being part of a great creative team and are equally comfortable helping lead the entertainment vision or fitting seamlessly into an established production."
+      ]
+    },
+    {
+      "question": "How do we get started?",
+      "answer": [
+        "Tell us what you're dreaming of.",
+        "We provide complimentary planning calls for all of our clients, which only take about 10-15 minutes. Once we learn the answers to a few logistical questions and your vision for the event, we can move forward with putting together a few different sizes of entertainment options for you.",
+        "Send us your event date, location, venue, approximate guest count, theme or creative direction, and anything you already know about the entertainment you're imagining.",
+        "And if you don't know exactly what you want yet, that's perfectly fine too. Bring us the beginning of an idea, and we'll help you discover what's possible.",
+        "Dream big. We'll help bring it to life."
+      ]
+    }
+  ]
+}

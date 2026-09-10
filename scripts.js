@@ -139,3 +139,42 @@
     }
   });
 })();
+
+(function () {
+  const items = document.querySelectorAll('.faq-item');
+  if (!items.length) return;
+
+  items.forEach(function (item) {
+    const summary = item.querySelector('summary');
+    const answer = item.querySelector('.faq-answer');
+
+    summary.addEventListener('click', function (event) {
+      event.preventDefault();
+
+      if (item.open) {
+        answer.style.height = answer.scrollHeight + 'px';
+        answer.getBoundingClientRect(); // force reflow so the next line animates
+        answer.style.height = '0px';
+        answer.addEventListener('transitionend', function onEnd() {
+          item.open = false;
+          answer.style.height = '';
+          answer.removeEventListener('transitionend', onEnd);
+        }, { once: true });
+        return;
+      }
+
+      item.open = true;
+      const targetHeight = answer.scrollHeight;
+      answer.style.height = '0px';
+      answer.getBoundingClientRect(); // force reflow so the next line animates
+      answer.style.height = targetHeight + 'px';
+      answer.addEventListener('transitionend', function onEnd() {
+        // Leave it at "auto" (not "") so it stays open and reflows with
+        // content/viewport changes, instead of snapping to the CSS default
+        // of height:0 and immediately animating shut again.
+        answer.style.height = 'auto';
+        answer.removeEventListener('transitionend', onEnd);
+      }, { once: true });
+    });
+  });
+})();

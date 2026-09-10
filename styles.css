@@ -767,6 +767,67 @@ a {
   padding: 2rem;
 }
 
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  padding: 1.25rem 1.5rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.05rem;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.faq-item[open] summary::after {
+  content: "\2212";
+}
+
+.faq-answer {
+  height: 0;
+  overflow: hidden;
+  transition: height 220ms ease;
+}
+
+.faq-answer-inner {
+  padding: 0 1.5rem 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-answer {
+    transition: none;
+  }
+}
+
+.faq-answer p {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
 .signup-band {
   grid-template-columns: 1.3fr 1fr;
   align-items: center;
@@ -834,6 +895,29 @@ a {
 .gradient-masthead .container {
   position: relative;
   z-index: 1;
+}
+
+.masthead-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.masthead-video-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(0deg, var(--color-accent-2, var(--color-accent)) 0%, var(--color-accent) 100%);
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masthead-video {
+    display: none;
+  }
 }
 
 .gradient-masthead .eyebrow {
