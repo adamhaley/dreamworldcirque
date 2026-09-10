@@ -69,6 +69,16 @@ a {
   text-decoration: none;
 }
 
+.site-brand {
+  display: block;
+}
+
+.brand-logo {
+  display: block;
+  height: 6.5rem;
+  width: auto;
+}
+
 .site-nav,
 .footer-links {
   display: flex;
