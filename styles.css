@@ -974,7 +974,7 @@ a {
   width: 2.5rem;
   height: 2.5rem;
   position: fixed;
-  right: 1rem;
+  left: 1rem;
   bottom: 1rem;
   display: none;
   z-index: 30;
@@ -1014,4 +1014,183 @@ a {
 
 .back-to-top-link:hover path {
   fill: var(--color-accent);
+}
+
+.chat-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: min(350px, calc(100vw - 2rem));
+  height: min(500px, calc(100vh - 4rem));
+  background: var(--color-page-bottom);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 2000;
+}
+
+.chat-widget.is-open .chat-container {
+  display: flex;
+}
+
+.chat-widget.is-open .chat-reopen-button {
+  display: none;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20px;
+  padding-top: 50px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.chat-input-row {
+  display: flex;
+  padding: 15px;
+  border-top: 1px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid var(--color-accent);
+  border-radius: 20px;
+  margin-right: 10px;
+  font-size: 14px;
+  outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.chat-input:focus {
+  box-shadow: 0 0 10px var(--color-accent);
+}
+
+.chat-input::placeholder {
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+
+.chat-send-button,
+.chat-reopen-button {
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.chat-send-button {
+  width: 40px;
+  height: 40px;
+}
+
+.chat-send-button svg,
+.chat-reopen-button svg,
+.chat-close-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
+/*
+ * The "comments" glyph's viewBox (640x512, 1.25:1) is wider than the
+ * square box above, so at the shared size it gets letterboxed and
+ * reads visually smaller than the other (square-viewBox) icons.
+ * Size it up specifically so it fills the reopen button the same way.
+ */
+.chat-reopen-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.chat-send-button:hover,
+.chat-reopen-button:hover {
+  box-shadow: 0 0 15px var(--color-accent);
+}
+
+.chat-reopen-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  box-shadow: 0 0 15px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  z-index: 2000;
+}
+
+.chat-reopen-button:hover {
+  transform: scale(1.1);
+}
+
+.chat-message {
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 15px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.chat-user-message {
+  background: var(--color-accent);
+  color: var(--color-surface);
+  margin-left: auto;
+}
+
+.chat-bot-message {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-text);
+  border: 1px solid var(--color-accent);
+}
+
+.chat-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+
+.chat-close-button:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  box-shadow: 0 0 10px var(--color-accent);
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 4px;
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+  }
 }

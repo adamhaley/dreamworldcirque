@@ -89,3 +89,53 @@
   window.addEventListener('scroll', syncBackToTop, { passive: true });
   syncBackToTop();
 })();
+
+(function () {
+  const root = document.querySelector('.chat-widget');
+  if (!root) return;
+
+  const input = root.querySelector('.chat-input');
+  const sendButton = root.querySelector('.chat-send-button');
+  const messages = root.querySelector('.chat-messages');
+  const closeButton = root.querySelector('.chat-close-button');
+  const reopenButton = root.querySelector('.chat-reopen-button');
+
+  function addMessage(message, isUser) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ' + (isUser ? 'chat-user-message' : 'chat-bot-message');
+    messageDiv.textContent = message;
+    messages.appendChild(messageDiv);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function sendMessage(message) {
+    if (!message.trim()) return;
+
+    addMessage(message, true);
+    input.value = '';
+
+    // No chat backend is wired up yet, so respond with a placeholder.
+    window.setTimeout(function () {
+      addMessage("Thanks for reaching out! Our chat assistant isn't connected yet — please use the contact form and we'll get back to you.", false);
+    }, 400);
+  }
+
+  closeButton.addEventListener('click', function () {
+    root.classList.remove('is-open');
+  });
+
+  reopenButton.addEventListener('click', function () {
+    root.classList.add('is-open');
+  });
+
+  sendButton.addEventListener('click', function () {
+    sendMessage(input.value);
+  });
+
+  input.addEventListener('keypress', function (event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage(input.value);
+    }
+  });
+})();
