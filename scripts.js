@@ -62,32 +62,128 @@
 })();
 
 (function () {
-  const root = document.querySelector('.back-to-top-link');
-  if (!root) return;
+  const video = document.querySelector('.masthead-video');
+  if (!video) return;
 
-  const threshold = 140;
-  const link = root.querySelector('a');
+  function showVideo() {
+    video.classList.add('is-ready');
+  }
+
+  if (video.readyState >= 2) {
+    showVideo();
+  } else {
+    video.addEventListener('loadeddata', showVideo, { once: true });
+  }
+})();
+
+// Back-to-top visibility, the header shrink, and the hero video's parallax
+// all react to scroll position. They're combined into a single listener,
+// batched to one requestAnimationFrame per tick, instead of three separate
+// scroll listeners each forcing their own layout/paint work — trackpad
+// scrolling fires far more scroll events than the display can paint, and
+// three independent unthrottled handlers was causing visible jank.
+(function () {
+  const backToTop = document.querySelector('.back-to-top-link');
+  const backToTopLink = backToTop ? backToTop.querySelector('a') : null;
+  const header = document.querySelector('.site-header');
+  // Homepage has a looping video hero; subpages have a static image hero.
+  // Only one of these exists on any given page, so the same parallax drives
+  // whichever is present.
+  const media = document.querySelector('.masthead-video, .masthead-image');
+  const hero = document.querySelector('.gradient-masthead, .image-masthead');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const backToTopThreshold = 140;
+  const headerEnterThreshold = 30;
+  const headerExitThreshold = 10;
+  const parallaxIntervalMs = 50;
+  let heroHeight = hero ? hero.offsetHeight : 0;
   let hideTimer;
+  let ticking = false;
+  let lastParallaxRun = 0;
+  let headerScrolled = false;
 
-  function syncBackToTop() {
-    if (window.scrollY > threshold) {
-      root.classList.add('in');
+  function updateHeroHeight() {
+    if (hero) heroHeight = hero.offsetHeight;
+  }
+
+  function syncBackToTop(scrollY) {
+    if (!backToTop) return;
+
+    if (scrollY > backToTopThreshold) {
+      backToTop.classList.add('in');
       clearTimeout(hideTimer);
-      requestAnimationFrame(() => root.classList.add('visible'));
+      backToTop.classList.add('visible');
       return;
     }
 
-    root.classList.remove('visible');
-    hideTimer = window.setTimeout(() => root.classList.remove('in'), 180);
+    backToTop.classList.remove('visible');
+    hideTimer = window.setTimeout(() => backToTop.classList.remove('in'), 180);
   }
 
-  link.addEventListener('click', function (event) {
-    event.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  function syncHeaderScrolled(scrollY) {
+    if (!header) return;
 
-  window.addEventListener('scroll', syncBackToTop, { passive: true });
-  syncBackToTop();
+    // Hysteresis, not a single threshold: momentum-scroll deceleration can
+    // leave scrollY hovering right around one pixel value as it settles,
+    // which would otherwise flip the class on/off repeatedly and restart
+    // the CSS transition mid-flight each time — the exact "jerks right as
+    // I stop scrolling" symptom. A gap between the enter/exit points means
+    // a single settling position can't bounce across both.
+    if (!headerScrolled && scrollY > headerEnterThreshold) {
+      headerScrolled = true;
+    } else if (headerScrolled && scrollY < headerExitThreshold) {
+      headerScrolled = false;
+    }
+
+    header.classList.toggle('is-scrolled', headerScrolled);
+  }
+
+  function syncParallax(scrollY) {
+    if (!media || !hero || reduceMotion) return;
+    if (scrollY > heroHeight) return;
+
+    // Throttled independently of the rAF batch above: this is the one write
+    // per tick expensive enough (compositor transform on a large element)
+    // that we want a hard ceiling on how often it can fire, not just a
+    // once-per-frame cap. The CSS transition on the media's transform
+    // eases the visual gap between these throttled updates.
+    const now = performance.now();
+    if (now - lastParallaxRun < parallaxIntervalMs) return;
+    lastParallaxRun = now;
+
+    // Capped so the max shift stays a known, small amount regardless of
+    // hero height/viewport — the media's CSS overscan (top: -20vh) is
+    // sized to cover exactly this much movement without revealing a gap.
+    const parallaxScrollCap = 300;
+    const offset = Math.min(scrollY, parallaxScrollCap) * 0.45;
+    media.style.transform = 'translateY(' + offset + 'px)';
+  }
+
+  function update() {
+    ticking = false;
+    const scrollY = window.scrollY;
+    syncBackToTop(scrollY);
+    syncHeaderScrolled(scrollY);
+    syncParallax(scrollY);
+  }
+
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  }
+
+  if (backToTopLink) {
+    backToTopLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', updateHeroHeight, { passive: true });
+  update();
 })();
 
 (function () {

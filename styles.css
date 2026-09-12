@@ -16,6 +16,15 @@
 
 html {
   scroll-behavior: smooth;
+  /* Disabling scroll anchoring for the whole document, not just the
+     header: overflow-anchor:none on the header itself only stops the
+     browser from picking something *inside* the header as the anchor it
+     tracks — it doesn't stop the header's own size change from *causing*
+     a compensating scroll adjustment elsewhere on the page. That
+     adjustment re-crosses our shrink/grow threshold and re-triggers the
+     shift, which is the real feedback loop (confirmed via a screen
+     recording showing scrollY itself oscillating, not just the class). */
+  overflow-anchor: none;
 }
 
 body {
@@ -48,6 +57,13 @@ a {
   backdrop-filter: blur(18px);
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   border-bottom: var(--border-subtle);
+  /* The header's own size change (padding/logo scale on scroll) is a real
+     layout shift near the top of the page. Without this, the browser's
+     scroll-anchoring feature can "helpfully" nudge scrollY to compensate,
+     which re-crosses our threshold and re-triggers the shift — a feedback
+     loop between our JS and the browser's own compensation, seen as a
+     rapid pulsing once scroll settles near the threshold. */
+  overflow-anchor: none;
 }
 
 .header-inner,
@@ -57,6 +73,15 @@ a {
   justify-content: space-between;
   gap: 1.25rem;
   padding: 1rem 0;
+}
+
+.header-inner {
+  padding: 1.6rem 0 2.0rem;
+  transition: padding 220ms ease;
+}
+
+.site-header.is-scrolled .header-inner {
+  padding: 0.35rem 0;
 }
 
 .site-brand,
@@ -70,13 +95,22 @@ a {
 }
 
 .site-brand {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .brand-logo {
   display: block;
-  height: 6.5rem;
+  height: 2.75rem;
   width: auto;
+  transform-origin: right center;
+  transform: scale(2.1);
+  transition: transform 220ms ease;
+}
+
+.site-header.is-scrolled .brand-logo {
+  transform: scale(1);
 }
 
 .site-nav,
@@ -234,6 +268,12 @@ a {
   .footer-inner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  /* The enlarged, left-growing logo can overflow a narrow viewport's
+     left edge, so keep it at its natural size on mobile. */
+  .brand-logo {
+    transform: scale(1) !important;
   }
 }
 
@@ -913,11 +953,19 @@ a {
 
 .masthead-video {
   position: absolute;
-  inset: 0;
+  top: -20vh;
+  left: 0;
   z-index: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% + 20vh);
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 700ms ease, transform 120ms ease-out;
+  will-change: transform;
+}
+
+.masthead-video.is-ready {
+  opacity: 1;
 }
 
 .masthead-video-overlay {
@@ -1009,6 +1057,65 @@ a {
 
 .page-title-bar .button-row {
   justify-content: center;
+}
+
+.image-masthead {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 55vh;
+  padding: calc(var(--section-space) * 1.5) 0 var(--section-space);
+  color: #fff;
+}
+
+.image-masthead .container {
+  position: relative;
+  z-index: 1;
+}
+
+.masthead-image {
+  position: absolute;
+  top: -20vh;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: calc(100% + 20vh);
+  object-fit: cover;
+  transition: transform 120ms ease-out;
+  will-change: transform;
+}
+
+.masthead-image-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(20, 12, 20, 0.4), rgba(20, 12, 20, 0.6));
+}
+
+.image-masthead .eyebrow {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.image-masthead .display-title {
+  color: inherit;
+}
+
+.image-masthead .masthead-subheading {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.image-masthead .button-row {
+  justify-content: center;
+}
+
+.image-masthead .button-primary {
+  background: #fff;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .masthead-subheading {
