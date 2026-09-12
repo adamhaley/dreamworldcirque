@@ -567,6 +567,23 @@ a {
 
 .feature-card {
   padding: 1.5rem;
+  position: relative;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Makes the whole card clickable through the one real link inside it
+   (the "Learn more" text), instead of nesting a second anchor around the
+   card — nested anchors aren't valid HTML. The pseudo-element expands to
+   cover the card's full area while the link's own text stays as-is. */
+.feature-card .preview-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
 }
 
 .feature-card h3 {
@@ -635,6 +652,12 @@ a {
 .preview-link {
   font-weight: 700;
   text-decoration: none;
+}
+
+.feature-card .preview-link {
+  display: block;
+  margin-top: 1rem;
+  text-align: right;
 }
 
 .promo-pair,
