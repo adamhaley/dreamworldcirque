@@ -1,4 +1,20 @@
 
+@font-face {
+  font-family: "Beyond Wonderland";
+  src: url("/assets/fonts/BeyondWonderland.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Birmingham Titling";
+  src: url("/assets/fonts/BirminghamTitling.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --container-width: 72rem;
   --gutter: clamp(1rem, 2vw, 1.5rem);
@@ -984,6 +1000,7 @@ a {
 
 .gradient-masthead .eyebrow {
   color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 3rem;
 }
 
 .masthead-eyebrow-link {
@@ -1001,6 +1018,7 @@ a {
 
 .gradient-masthead .display-title {
   color: inherit;
+  font-family: "Birmingham Titling", var(--font-heading);
 }
 
 .gradient-masthead .masthead-subheading {
