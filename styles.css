@@ -1115,7 +1115,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 85vh;
+  min-height: max(42rem, 85vh);
   padding: calc(var(--section-space) * 1.5) 0 var(--section-space);
   background: linear-gradient(0deg, var(--color-accent-2, var(--color-accent)) 0%, var(--color-accent) 100%);
   color: #fff;
@@ -1280,7 +1280,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 55vh;
+  min-height: max(42rem, 85vh);
   padding: calc(var(--section-space) * 1.5) 0 var(--section-space);
   color: #fff;
 }
