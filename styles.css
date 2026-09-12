@@ -67,12 +67,25 @@ a {
 }
 
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
-  backdrop-filter: blur(18px);
-  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
-  border-bottom: var(--border-subtle);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  /* backdrop-filter is deliberately NOT in this transition: animating a
+     live blur radius on a fixed header, at the same time its own height
+     is changing (.header-inner's padding, below) and while a video plays
+     underneath, produced a smeary "splash" artifact. Toggling the blur
+     instantly while still fading background-color/border-color keeps the
+     fade smooth without that interaction.
+     Kept quick and eased out (120ms) rather than matching the slower
+     220ms height change: the two used to visibly overlap — a still-tinted,
+     still-growing bar reads as its own distinct "flash" — so the fade now
+     finishes early and gets out of the way instead of dragging alongside
+     the height change. */
+  transition: background-color 80ms ease-out, border-color 80ms ease-out;
   /* The header's own size change (padding/logo scale on scroll) is a real
      layout shift near the top of the page. Without this, the browser's
      scroll-anchoring feature can "helpfully" nudge scrollY to compensate,
@@ -81,6 +94,19 @@ a {
      rapid pulsing once scroll settles near the threshold. */
   overflow-anchor: none;
 }
+
+/* Header floats transparent over the hero until scrolled — at that point
+   it picks up the same blurred, opaque surface it always used to have. */
+.site-header.is-scrolled {
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border-bottom: var(--border-subtle);
+}
+
+/* Since .site-header is no longer in normal document flow (position: fixed,
+   not sticky), the page's first section — always a hero — now starts at
+   the very top of the viewport and runs underneath the transparent header,
+   which is the point: a full-bleed hero with the nav floating over it. */
 
 .header-inner,
 .footer-inner {
@@ -114,19 +140,54 @@ a {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  color: #fff;
+  transition: color 220ms ease;
 }
 
-.brand-logo {
+.site-header.is-scrolled .site-brand {
+  color: var(--color-text);
+}
+
+.brand-logo-swap {
+  position: relative;
   display: block;
   height: 2.75rem;
-  width: auto;
   transform-origin: right center;
   transform: scale(2.1);
   transition: transform 220ms ease;
 }
 
-.site-header.is-scrolled .brand-logo {
+.site-header.is-scrolled .brand-logo-swap {
   transform: scale(1);
+}
+
+.brand-logo {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+/* Two pixel-identical logo files (same alpha mask, dark vs. white fill)
+   cross-fade instead of swapping src — the light one is the resting
+   (top-of-page) state, the dark one takes over once scrolled. */
+.brand-logo-light {
+  opacity: 1;
+  transition: opacity 220ms ease;
+}
+
+.site-header.is-scrolled .brand-logo-light {
+  opacity: 0;
+}
+
+.brand-logo-dark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.site-header.is-scrolled .brand-logo-dark {
+  opacity: 1;
 }
 
 .site-nav,
@@ -144,6 +205,23 @@ a {
 
 .site-nav a:hover,
 .footer-links a:hover {
+  color: var(--color-text);
+}
+
+.site-header .site-nav a {
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 220ms ease;
+}
+
+.site-header .site-nav a:hover {
+  color: #fff;
+}
+
+.site-header.is-scrolled .site-nav a {
+  color: var(--color-muted);
+}
+
+.site-header.is-scrolled .site-nav a:hover {
   color: var(--color-text);
 }
 
@@ -191,6 +269,17 @@ a {
 .nav-dropdown a:hover {
   color: var(--color-text);
   background: var(--color-strong-surface);
+}
+
+/* The dropdown panel itself is always an opaque white surface, regardless
+   of whether the header is transparent or not — so its links stay dark
+   in every header state, unlike the top-level nav links. */
+.site-header .nav-dropdown a {
+  color: var(--color-muted);
+}
+
+.site-header .nav-dropdown a:hover {
+  color: var(--color-text);
 }
 
 .site-footer {
@@ -286,10 +375,27 @@ a {
     flex-direction: column;
   }
 
-  /* The enlarged, left-growing logo can overflow a narrow viewport's
-     left edge, so keep it at its natural size on mobile. */
-  .brand-logo {
-    transform: scale(1) !important;
+  .brand-logo-swap {
+    margin-left: 1.5rem;
+  }
+}
+
+/* The enlarged, left-growing logo needs room to its left to grow into.
+   Above 76rem (--container-width plus its gutters on both sides) the
+   container is capped and centered, so its edge sits well clear of the
+   viewport edge and the full scale(2.1) fits comfortably. Below that, the
+   container's margin shrinks down to just the gutter (as little as 1rem),
+   which isn't enough room for the full-size scale — it was overflowing
+   past the actual browser edge. Dial the scale back (not all the way to
+   1) so the logo still reads as enlarged, just within what actually fits
+   down to 761px, where the mobile breakpoint below takes over.
+   No !important here (unlike the mobile breakpoint below): this has to
+   stay overridable by .site-header.is-scrolled, or the shrink-on-scroll
+   effect stops working entirely in this width range. */
+@media (max-width: 76rem) {
+  .brand-logo-swap {
+    transform: scale(1.3);
+    margin-left: 2rem;
   }
 }
 
