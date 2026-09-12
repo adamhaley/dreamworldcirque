@@ -1134,13 +1134,8 @@ a {
   width: 100%;
   height: calc(100% + 20vh);
   object-fit: cover;
-  opacity: 0;
-  transition: opacity 700ms ease, transform 120ms ease-out;
+  transition: transform 120ms ease-out;
   will-change: transform;
-}
-
-.masthead-video.is-ready {
-  opacity: 1;
 }
 
 .masthead-video-overlay {
@@ -1186,6 +1181,13 @@ a {
 .hero-title-word {
   display: inline-block;
   opacity: 0;
+}
+
+/* Held at opacity: 0 (not animating) until scripts.js confirms the Beyond
+   Wonderland font has actually loaded and adds this class — otherwise the
+   stagger reveal could run against the fallback font while the real one
+   is still fetching, then visibly swap mid-animation or right after it. */
+.fonts-ready .hero-title-word {
   animation: hero-title-fade-in 600ms ease forwards;
 }
 

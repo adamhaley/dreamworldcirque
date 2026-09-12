@@ -61,19 +61,30 @@
   });
 })();
 
+// Gates the hero title's word-by-word reveal on the Beyond Wonderland font
+// actually being loaded, instead of running on page load regardless — on a
+// slow connection the animation could otherwise run (and finish) in the
+// fallback font, then visibly swap faces right after. A timeout fallback
+// still reveals the title if font loading takes unusually long or the
+// Font Loading API check fails, so the hero never stays blank.
 (function () {
-  const video = document.querySelector('.masthead-video');
-  if (!video) return;
+  const title = document.querySelector('.hero-title-animated');
+  if (!title) return;
 
-  function showVideo() {
-    video.classList.add('is-ready');
+  function reveal() {
+    title.classList.add('fonts-ready');
   }
 
-  if (video.readyState >= 2) {
-    showVideo();
-  } else {
-    video.addEventListener('loadeddata', showVideo, { once: true });
+  if (!('fonts' in document)) {
+    reveal();
+    return;
   }
+
+  const timeout = setTimeout(reveal, 2000);
+  document.fonts.load('1em "Beyond Wonderland"').then(function () {
+    clearTimeout(timeout);
+    reveal();
+  }, reveal);
 })();
 
 // Back-to-top visibility, the header shrink, and the hero video's parallax
