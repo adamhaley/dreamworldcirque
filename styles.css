@@ -1018,7 +1018,10 @@ a {
 
 .gradient-masthead .display-title {
   color: inherit;
-  font-family: "Birmingham Titling", var(--font-heading);
+  font-family: "Beyond Wonderland", var(--font-heading);
+  font-weight: 400;
+  font-size: clamp(3.4rem, 10vw, 8rem);
+  margin-bottom: 1.5rem;
 }
 
 .gradient-masthead .masthead-subheading {
