@@ -1385,6 +1385,20 @@ a {
     grid-column: 1 / -1;
   }
 
+  /* Desktop alternates image/text sides per section via order (left/right,
+     right/left, left/right...), which on a single mobile column instead
+     stacks the tail of one section against the head of the next — e.g.
+     two images landing back to back. Reset to always image-then-text,
+     ignoring the desktop left/right variant, so each section's own image
+     and copy stay paired together. */
+  .spotlight-grid .spotlight-media {
+    order: 1;
+  }
+
+  .spotlight-grid .spotlight-copy {
+    order: 2;
+  }
+
   .feature-grid,
   .section-heading,
   .cta-band,
