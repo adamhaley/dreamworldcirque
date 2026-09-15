@@ -272,37 +272,74 @@
   const items = document.querySelectorAll('.faq-item');
   if (!items.length) return;
 
+  // Auto-closing another item (below) can start a new transition on an
+  // answer while its *previous* open/close transitionend handler is still
+  // attached and pending — both fire on whichever transition completes
+  // first, and the stale one (e.g. the original "open" handler setting
+  // height back to auto) can win the race, leaving the item stuck open.
+  // Tracking and explicitly removing any pending handler before starting
+  // a new transition guarantees only the latest one ever runs.
+  function clearPendingEnd(answer) {
+    if (answer._pendingEnd) {
+      answer.removeEventListener('transitionend', answer._pendingEnd);
+      answer._pendingEnd = null;
+    }
+  }
+
+  function closeItem(item) {
+    const answer = item.querySelector('.faq-answer');
+    clearPendingEnd(answer);
+    answer.style.height = answer.scrollHeight + 'px';
+    answer.getBoundingClientRect(); // force reflow so the next line animates
+    answer.style.height = '0px';
+    const onEnd = function () {
+      item.open = false;
+      answer.style.height = '';
+      answer.removeEventListener('transitionend', onEnd);
+      answer._pendingEnd = null;
+    };
+    answer._pendingEnd = onEnd;
+    answer.addEventListener('transitionend', onEnd, { once: true });
+  }
+
+  function openItem(item) {
+    const answer = item.querySelector('.faq-answer');
+    clearPendingEnd(answer);
+    item.open = true;
+    const targetHeight = answer.scrollHeight;
+    answer.style.height = '0px';
+    answer.getBoundingClientRect(); // force reflow so the next line animates
+    answer.style.height = targetHeight + 'px';
+    const onEnd = function () {
+      // Leave it at "auto" (not "") so it stays open and reflows with
+      // content/viewport changes, instead of snapping to the CSS default
+      // of height:0 and immediately animating shut again.
+      answer.style.height = 'auto';
+      answer.removeEventListener('transitionend', onEnd);
+      answer._pendingEnd = null;
+    };
+    answer._pendingEnd = onEnd;
+    answer.addEventListener('transitionend', onEnd, { once: true });
+  }
+
   items.forEach(function (item) {
     const summary = item.querySelector('summary');
-    const answer = item.querySelector('.faq-answer');
 
     summary.addEventListener('click', function (event) {
       event.preventDefault();
 
       if (item.open) {
-        answer.style.height = answer.scrollHeight + 'px';
-        answer.getBoundingClientRect(); // force reflow so the next line animates
-        answer.style.height = '0px';
-        answer.addEventListener('transitionend', function onEnd() {
-          item.open = false;
-          answer.style.height = '';
-          answer.removeEventListener('transitionend', onEnd);
-        }, { once: true });
+        closeItem(item);
         return;
       }
 
-      item.open = true;
-      const targetHeight = answer.scrollHeight;
-      answer.style.height = '0px';
-      answer.getBoundingClientRect(); // force reflow so the next line animates
-      answer.style.height = targetHeight + 'px';
-      answer.addEventListener('transitionend', function onEnd() {
-        // Leave it at "auto" (not "") so it stays open and reflows with
-        // content/viewport changes, instead of snapping to the CSS default
-        // of height:0 and immediately animating shut again.
-        answer.style.height = 'auto';
-        answer.removeEventListener('transitionend', onEnd);
-      }, { once: true });
+      // Only one answer open at a time: close any other item that's
+      // currently open before opening this one.
+      items.forEach(function (other) {
+        if (other !== item && other.open) closeItem(other);
+      });
+
+      openItem(item);
     });
   });
 })();
