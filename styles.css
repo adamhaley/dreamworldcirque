@@ -229,6 +229,25 @@ a {
   position: relative;
 }
 
+.nav-item.has-dropdown > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* fill: currentColor (not a separate color rule) so the arrow tracks
+   whatever color the "Services" link itself has at any moment — white at
+   the top of the page, dark once scrolled, accent on hover — automatically,
+   the same way the rest of the arrow motif flips with the header state. */
+.nav-caret {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.nav-caret path {
+  fill: currentColor;
+}
+
 .nav-dropdown {
   position: absolute;
   top: 100%;
