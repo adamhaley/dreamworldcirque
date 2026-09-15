@@ -1475,19 +1475,16 @@ a {
   position: fixed;
   right: 20px;
   bottom: 82px;
-  display: none;
   z-index: 30;
   opacity: 0;
+  pointer-events: none;
   transform: translateY(0.35rem);
   transition: opacity 180ms ease, transform 180ms ease;
 }
 
-.back-to-top-link.in {
-  display: block;
-}
-
 .back-to-top-link.visible {
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(0);
 }
 
@@ -1512,6 +1509,50 @@ a {
 }
 
 .back-to-top-link:hover path {
+  fill: var(--color-accent);
+}
+
+/* Same fixed slot as .back-to-top-link, but visible only near the top of
+   the page — the two swap places at the same scroll threshold, never both
+   shown at once. Deliberately a bare triangle with no circular backing,
+   introducing a second "arrow language" (plain SVG triangle, no chip)
+   distinct from the back-to-top button's own style, per Adam's direction. */
+.scroll-down-link {
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  position: fixed;
+  right: 20px;
+  bottom: 82px;
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.scroll-down-link.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.scroll-down-link a {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.scroll-down-link svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.scroll-down-link path {
+  fill: #fff;
+  transition: fill 180ms ease;
+}
+
+.scroll-down-link:hover path {
   fill: var(--color-accent);
 }
 

@@ -96,6 +96,8 @@
 (function () {
   const backToTop = document.querySelector('.back-to-top-link');
   const backToTopLink = backToTop ? backToTop.querySelector('a') : null;
+  const scrollDown = document.querySelector('.scroll-down-link');
+  const scrollDownLink = scrollDown ? scrollDown.querySelector('a') : null;
   const header = document.querySelector('.site-header');
   // Homepage has a looping video hero; subpages have a static image hero.
   // Only one of these exists on any given page, so the same parallax drives
@@ -104,32 +106,44 @@
   const hero = document.querySelector('.gradient-masthead, .image-masthead');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const backToTopThreshold = 140;
+  const arrowEnterThreshold = 160;
+  const arrowExitThreshold = 100;
   const headerEnterThreshold = 30;
   const headerExitThreshold = 10;
   const parallaxIntervalMs = 50;
   let heroHeight = hero ? hero.offsetHeight : 0;
-  let hideTimer;
   let ticking = false;
   let lastParallaxRun = 0;
   let headerScrolled = false;
+  let pastHero = false;
 
   function updateHeroHeight() {
     if (hero) heroHeight = hero.offsetHeight;
   }
 
-  function syncBackToTop(scrollY) {
-    if (!backToTop) return;
-
-    if (scrollY > backToTopThreshold) {
-      backToTop.classList.add('in');
-      clearTimeout(hideTimer);
-      backToTop.classList.add('visible');
-      return;
+  // Back-to-top and the scroll-down arrow share one slot and one boolean,
+  // with a hysteresis gap between the enter/exit points (same fix the
+  // header shrink effect needed — momentum-scroll deceleration can leave
+  // scrollY hovering right around a single value as it settles).
+  //
+  // Deliberately a pure opacity crossfade with no display:none/delayed-
+  // removal step (unlike back-to-top's own original solo version): with
+  // two independently-timed elements swapping in the same spot, a fast
+  // "slam" scroll could catch them with neither element's fade-in having
+  // started yet while the other's fade-out delay hadn't finished — briefly
+  // neither visible. Both elements now stay in normal rendering at all
+  // times; only their opacity (and pointer-events, so the hidden one can't
+  // steal clicks) toggles, so they always continuously cross-fade rather
+  // than discretely swap.
+  function syncArrows(scrollY) {
+    if (!pastHero && scrollY > arrowEnterThreshold) {
+      pastHero = true;
+    } else if (pastHero && scrollY < arrowExitThreshold) {
+      pastHero = false;
     }
 
-    backToTop.classList.remove('visible');
-    hideTimer = window.setTimeout(() => backToTop.classList.remove('in'), 180);
+    if (backToTop) backToTop.classList.toggle('visible', pastHero);
+    if (scrollDown) scrollDown.classList.toggle('visible', !pastHero);
   }
 
   function syncHeaderScrolled(scrollY) {
@@ -174,7 +188,7 @@
   function update() {
     ticking = false;
     const scrollY = window.scrollY;
-    syncBackToTop(scrollY);
+    syncArrows(scrollY);
     syncHeaderScrolled(scrollY);
     syncParallax(scrollY);
   }
@@ -189,6 +203,13 @@
     backToTopLink.addEventListener('click', function (event) {
       event.preventDefault();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  if (scrollDownLink) {
+    scrollDownLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      window.scrollTo({ top: heroHeight, behavior: 'smooth' });
     });
   }
 
