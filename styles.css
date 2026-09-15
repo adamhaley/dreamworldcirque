@@ -702,9 +702,26 @@ a {
 }
 
 .feature-card .preview-link {
-  display: block;
+  display: flex;
+  justify-content: flex-end;
   margin-top: 1rem;
-  text-align: right;
+}
+
+.feature-card .preview-link svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.feature-card .preview-link path {
+  fill: var(--color-muted);
+  transition: fill 180ms ease;
+}
+
+/* Reacts to hovering anywhere on the card, not just the arrow itself,
+   since the whole card is the click target (see .feature-card .preview-link
+   ::after above). */
+.feature-card:hover .preview-link path {
+  fill: var(--color-accent);
 }
 
 .promo-pair,
