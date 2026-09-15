@@ -380,6 +380,21 @@ a {
   color: var(--color-text);
 }
 
+/* Only on buttons that navigate to a different page (internal links,
+   handled at the markup level) — a button that just scrolls the current
+   page doesn't get one. Grey to match the service-card arrow, rather than
+   currentColor, per Adam's direction. */
+.button-arrow {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
+.button-arrow path {
+  fill: var(--color-muted);
+}
+
 /* Icon-only "back" nudge that sits in the button row next to the hero's
    CTA, replacing the old descriptive "Home"/"Services" text link that
    used to sit above the title. */
