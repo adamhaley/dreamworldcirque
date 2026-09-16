@@ -1101,6 +1101,10 @@ a {
 
 .quote-band {
   padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: clamp(16rem, 28vw, 20rem);
 }
 
 .quote-text {
