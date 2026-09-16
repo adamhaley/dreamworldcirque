@@ -184,8 +184,16 @@ class PageResource extends Resource
                     ->description(fn (Page $record): string => $record->url())
                     ->searchable(),
                 TextColumn::make('template')->badge(),
-                IconColumn::make('is_published')->label('Published')->boolean(),
-                IconColumn::make('show_in_nav')->label('In nav')->boolean(),
+                IconColumn::make('is_published')
+                    ->label('Published')
+                    ->boolean()
+                    ->falseIcon(Heroicon::OutlinedMinusCircle)
+                    ->falseColor('gray'),
+                IconColumn::make('show_in_nav')
+                    ->label('In nav')
+                    ->boolean()
+                    ->falseIcon(Heroicon::OutlinedMinusCircle)
+                    ->falseColor('gray'),
                 TextColumn::make('updated_at')->since()->sortable(),
             ])
             ->filters([

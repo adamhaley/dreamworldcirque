@@ -6,6 +6,7 @@ use App\Filament\Resources\Pages\PageResource;
 use App\Models\Page;
 use Filament\Actions\Action;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -24,7 +25,11 @@ class ChildPagesRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('title')->description(fn (Page $record): string => $record->url()),
                 TextColumn::make('template')->badge(),
-                IconColumn::make('is_published')->label('Published')->boolean(),
+                IconColumn::make('is_published')
+                    ->label('Published')
+                    ->boolean()
+                    ->falseIcon(Heroicon::OutlinedMinusCircle)
+                    ->falseColor('gray'),
             ])
             ->headerActions([
                 Action::make('create')
