@@ -10,10 +10,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property list<string>|null $bullets
+ * @property list<array<string, string>>|null $buttons
+ */
 #[Fillable([
     'parent_id', 'title', 'slug', 'template', 'sort_order', 'is_published', 'show_in_nav', 'nav_anchor',
     'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image',
-    'circle_image', 'circle_image_alt', 'body', 'card_excerpt', 'cta_heading',
+    'section_eyebrow', 'section_heading', 'body', 'bullets', 'buttons', 'circle_image', 'circle_image_alt',
+    'quote_id', 'card_excerpt', 'cta_eyebrow', 'cta_heading', 'cta_button_label',
 ])]
 class Page extends Model
 {
@@ -27,6 +32,8 @@ class Page extends Model
     {
         return [
             'template' => PageTemplate::class,
+            'bullets' => 'array',
+            'buttons' => 'array',
             'is_published' => 'boolean',
             'show_in_nav' => 'boolean',
         ];
@@ -57,6 +64,12 @@ class Page extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Page::class, 'parent_id')->orderBy('sort_order');
+    }
+
+    /** @return BelongsTo<Quote, $this> */
+    public function quote(): BelongsTo
+    {
+        return $this->belongsTo(Quote::class);
     }
 
     public function url(): string

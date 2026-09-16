@@ -17,6 +17,7 @@ class GalleryPhotoFactory extends Factory
     {
         return [
             'image' => 'gallery/'.fake()->uuid().'.jpg',
+            'title' => fake()->words(3, true),
             'alt' => fake()->sentence(4),
             'caption' => fake()->sentence(3),
             'in_homepage_carousel' => false,
