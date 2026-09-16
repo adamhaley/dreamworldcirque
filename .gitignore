@@ -36,3 +36,20 @@ dist/
 
 # Legacy contact-form export — contains customer PII (names, emails, IPs)
 /docs/legacy-leads/
+
+# Laravel
+.env.backup
+.env.production
+.phpunit.result.cache
+/.phpunit.cache
+/auth.json
+/public/build
+/public/css/filament
+/public/fonts/filament
+/public/hot
+/public/js/filament
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+/database/database.sqlite
