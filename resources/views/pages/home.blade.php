@@ -1,6 +1,6 @@
 <x-layouts.site :page="$page">
   @push('head')
-  <link rel="preload" href="/assets/fonts/BeyondWonderland.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="/assets/fonts/Birmingham.ttf" as="font" type="font/ttf" crossorigin />
   @endpush
 
   <header class="gradient-masthead" id="top">
