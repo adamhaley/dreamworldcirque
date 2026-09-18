@@ -8,6 +8,14 @@
 }
 
 @font-face {
+  font-family: "Birmingham";
+  src: url("/assets/fonts/Birmingham.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Birmingham Titling";
   src: url("/assets/fonts/BirminghamTitling.ttf") format("truetype");
   font-weight: normal;
@@ -1306,7 +1314,7 @@ a {
 
 .gradient-masthead .display-title {
   color: inherit;
-  font-family: "Beyond Wonderland", var(--font-heading);
+  font-family: "Birmingham", var(--font-heading);
   font-weight: 400;
   font-size: clamp(3.4rem, 10vw, 8rem);
   margin-bottom: 1.5rem;

@@ -61,7 +61,7 @@
   });
 })();
 
-// Gates the hero title's word-by-word reveal on the Beyond Wonderland font
+// Gates the hero title's word-by-word reveal on the Birmingham font
 // actually being loaded, instead of running on page load regardless — on a
 // slow connection the animation could otherwise run (and finish) in the
 // fallback font, then visibly swap faces right after. A timeout fallback
@@ -81,7 +81,7 @@
   }
 
   const timeout = setTimeout(reveal, 2000);
-  document.fonts.load('1em "Beyond Wonderland"').then(function () {
+  document.fonts.load('1em "Birmingham"').then(function () {
     clearTimeout(timeout);
     reveal();
   }, reveal);
