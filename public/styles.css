@@ -26,7 +26,7 @@
 :root {
   --container-width: 72rem;
   --gutter: clamp(1rem, 2vw, 1.5rem);
-  --section-space: clamp(4rem, 8vw, 8rem);
+  --section-space: clamp(2.5rem, 5vw, 5rem);
   --radius-sm: 0;
   --radius-md: 0;
   --radius-lg: 0;
