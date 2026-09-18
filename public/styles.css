@@ -1516,30 +1516,6 @@ a {
   object-fit: cover;
 }
 
-/* About photo (Duquette_DWC_Hoops_LB.jpg) is only slightly wider than the
-   circle needs, so cover's own left/right crop range is too small on its
-   own to both center the performer and fully hide the corner logo
-   watermark — a scaled zoom (anchored left-of-center, where the performer
-   already stands) gives enough extra crop range to do both. */
-#about .spotlight-media-circle img {
-  object-position: 0% center;
-  transform: scale(1.35);
-  transform-origin: 15% center;
-}
-
-/* Weddings/Corporate photo (DWC_Ambient_Stilts_Wings.jpg) is taller than
-   wide, so plain cover crops from the top/bottom only — the full width is
-   always shown, leaving no object-position slack to shift the performer
-   left/right on its own. A zoom anchored right-of-center pushes her
-   further left within the circle (scaling stretches content away from the
-   anchor point), while the vertical bias still keeps her face/torso in
-   frame over the legs extending toward the bottom-right. */
-#events .spotlight-media-circle img {
-  object-position: center 20%;
-  transform: scale(1.2);
-  transform-origin: 75% center;
-}
-
 @media (max-width: 960px) {
   .masthead-circle-1 {
     width: 40rem;
