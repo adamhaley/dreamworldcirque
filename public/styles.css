@@ -948,8 +948,16 @@ a {
 }
 
 .codette-carousel-control-icon {
-  font-size: 1rem;
-  line-height: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.codette-carousel-control-icon path {
+  fill: currentColor;
+}
+
+.codette-carousel-control-icon-prev {
+  transform: rotate(180deg);
 }
 
 .codette-carousel-indicators {

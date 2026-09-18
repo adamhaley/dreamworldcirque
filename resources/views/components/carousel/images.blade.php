@@ -18,10 +18,10 @@
       @endforeach
     </div>
     <button class="carousel-control-prev codette-carousel-control" type="button" data-bs-target="#gallery-carousel" data-bs-slide="prev" aria-label="Previous slide">
-      <span class="codette-carousel-control-icon" aria-hidden="true">&larr;</span>
+      <x-icon.forward class="codette-carousel-control-icon codette-carousel-control-icon-prev" />
     </button>
     <button class="carousel-control-next codette-carousel-control" type="button" data-bs-target="#gallery-carousel" data-bs-slide="next" aria-label="Next slide">
-      <span class="codette-carousel-control-icon" aria-hidden="true">&rarr;</span>
+      <x-icon.forward class="codette-carousel-control-icon" />
     </button>
   </div>
   <div class="carousel-indicators codette-carousel-indicators">
