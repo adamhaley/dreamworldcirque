@@ -37,6 +37,14 @@
 
   <x-logo-wall />
 
+  @if ($quotes->isNotEmpty())
+  <section class="section">
+    <div class="container">
+      <x-carousel.quotes :quotes="$quotes" />
+    </div>
+  </section>
+  @endif
+
   @if ($services)
   <section class="section" id="services">
     <div class="container">
@@ -64,14 +72,6 @@
         <div class="button-row"><x-button href="/gallery/" variant="secondary" arrow>View Full Gallery</x-button></div>
       </div>
       <x-carousel.images :photos="$carouselPhotos" />
-    </div>
-  </section>
-  @endif
-
-  @if ($quotes->isNotEmpty())
-  <section class="section">
-    <div class="container">
-      <x-carousel.quotes :quotes="$quotes" />
     </div>
   </section>
   @endif
