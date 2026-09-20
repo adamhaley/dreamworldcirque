@@ -231,6 +231,26 @@
   if (scrollDownLink) {
     scrollDownLink.addEventListener('click', function (event) {
       event.preventDefault();
+
+      // The mobile header stacks the brand and navigation. Measure a hidden
+      // copy in its compact state so the next section lands directly below
+      // the fixed header at every mobile width, without a hard-coded offset.
+      const nextSection = hero ? hero.nextElementSibling : null;
+      if (window.matchMedia('(max-width: 760px)').matches && nextSection) {
+        const compactHeader = header.cloneNode(true);
+        compactHeader.classList.add('is-scrolled');
+        compactHeader.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;transition:none;';
+        const compactInner = compactHeader.querySelector('.header-inner');
+        if (compactInner) compactInner.style.transition = 'none';
+        document.body.appendChild(compactHeader);
+        const headerHeight = compactHeader.offsetHeight;
+        compactHeader.remove();
+
+        const sectionTop = nextSection.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: sectionTop - headerHeight, behavior: 'smooth' });
+        return;
+      }
+
       window.scrollTo({ top: heroHeight, behavior: 'smooth' });
     });
   }
