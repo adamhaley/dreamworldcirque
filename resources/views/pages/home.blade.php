@@ -67,7 +67,7 @@
   @endif
 
   @if ($carouselPhotos->isNotEmpty())
-  <section class="section" id="gallery">
+  <section class="section">
     <div class="container">
       <div class="section-heading">
         <div>
@@ -77,12 +77,14 @@
         <p class="section-copy">A cross-section of acts from corporate galas, weddings, and branded activations.</p>
         <div class="button-row"><x-button href="/gallery/" variant="secondary" arrow>View Full Gallery</x-button></div>
       </div>
-      <x-carousel.images :photos="$carouselPhotos" />
+      <div id="gallery" class="scroll-target">
+        <x-carousel.images :photos="$carouselPhotos" />
+      </div>
     </div>
   </section>
   @endif
 
-  <section class="section" id="contact">
+  <section class="section home-contact-section" id="contact">
     <div class="container">
       <div class="section-heading">
         <div>
