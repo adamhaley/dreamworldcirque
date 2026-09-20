@@ -130,8 +130,7 @@ class ProspectResource extends Resource
                     ])
                         ->label('Classify')
                         ->icon(Heroicon::ChevronDown)
-                        ->button()
-                        ->visible(fn (?Prospect $record): bool => $record?->status === ProspectStatus::PendingReview),
+                        ->button(),
                 ])
                 ->schema([
                     TextEntry::make('classification')
