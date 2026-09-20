@@ -6,6 +6,7 @@ use App\Enums\ProspectStatus;
 use App\Models\Prospect;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class ProspectSeeder extends Seeder
 {
@@ -51,11 +52,11 @@ class ProspectSeeder extends Seeder
             'source' => 'legacy_contact_form',
             'source_external_id' => (string) $externalId,
             'submitted_at' => Carbon::parse($record['date']),
-            'form_type' => $record['form_type'] ?: null,
-            'name' => $record['name'] ?: null,
-            'email' => $record['email'] ?: null,
-            'phone' => $fields['phone'],
-            'website' => $record['website'] ?: null,
+            'form_type' => $this->boundedString($record['form_type'] ?? null),
+            'name' => $this->boundedString($record['name'] ?? null),
+            'email' => $this->boundedString($record['email'] ?? null),
+            'phone' => $this->boundedString($fields['phone']),
+            'website' => $this->boundedString($record['website'] ?? null),
             'message' => $fields['message'],
             'interests' => $fields['interests'] === [] ? null : $fields['interests'],
             'submission_count' => (int) ($record['submission_count'] ?: 1),
@@ -66,6 +67,11 @@ class ProspectSeeder extends Seeder
                 'likely_spam' => $record['likely_spam'] ?? null,
             ],
         ]);
+    }
+
+    private function boundedString(?string $value): ?string
+    {
+        return filled($value) ? Str::limit($value, 255, '') : null;
     }
 
     /** @return array{phone: ?string, message: ?string, interests: list<string>} */

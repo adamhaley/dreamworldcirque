@@ -71,7 +71,17 @@ class ProspectSeederTest extends TestCase
         $this->assertSame(0, Prospect::query()->count());
     }
 
-    private function writeFixtureCsv(): void
+    #[Test]
+    public function it_bounds_legacy_scalar_fields_to_database_column_lengths(): void
+    {
+        $this->writeFixtureCsv(str_repeat('x', 300));
+
+        $this->seed(ProspectSeeder::class);
+
+        $this->assertSame(255, mb_strlen(Prospect::query()->where('source_external_id', '1')->sole()->name));
+    }
+
+    private function writeFixtureCsv(?string $spamName = null): void
     {
         $path = base_path(self::CSV_PATH);
         @mkdir(dirname($path), recursive: true);
@@ -81,7 +91,7 @@ class ProspectSeederTest extends TestCase
             [
                 '2026-01-01T00:00:00-06:00',
                 'Get_A_Quote Form Submission',
-                'Jane Spammer',
+                $spamName ?? 'Jane Spammer',
                 'spam@example.com',
                 '',
                 'example.com',
