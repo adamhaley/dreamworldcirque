@@ -73,6 +73,10 @@ class ProspectResource extends Resource
     {
         return $schema->columns(1)->components([
             Section::make('Inquiry')->schema([
+                TextEntry::make('status')
+                    ->badge()
+                    ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null)
+                    ->columnSpanFull(),
                 TextEntry::make('name')->placeholder('(not given)'),
                 TextEntry::make('email')->placeholder('(not given)'),
                 TextEntry::make('phone')->placeholder('(not given)'),

@@ -117,6 +117,20 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_shows_the_active_status_spinner_in_the_open_prospect_view(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->pendingReview()->create([
+            'status' => ProspectStatus::DraftGenerating,
+        ]);
+
+        Livewire::test(ManageProspects::class)
+            ->callTableAction(ViewAction::class, $prospect)
+            ->assertSee('Drafting reply')
+            ->assertSeeHtml('animation: dwc-status-spin');
+    }
+
+    #[Test]
     public function it_subscribes_to_the_fixed_pipeline_channel_regardless_of_which_record_is_open(): void
     {
         $this->actingAs(User::factory()->admin()->create());
