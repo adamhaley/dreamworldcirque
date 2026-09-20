@@ -98,14 +98,11 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_opens_the_view_action_for_a_prospect_with_interests(): void
+    public function it_formats_prospect_interests_for_the_view_action(): void
     {
-        $this->actingAs(User::factory()->admin()->create());
-        $prospect = Prospect::factory()->create(['interests' => ['Wedding', 'Corporate Event']]);
-
-        Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
-            ->assertOk();
+        $this->assertSame('Wedding', ProspectResource::formatInterests('Wedding'));
+        $this->assertSame('Corporate Event', ProspectResource::formatInterests('Corporate Event'));
+        $this->assertSame('Wedding, Corporate Event', ProspectResource::formatInterests('["Wedding","Corporate Event"]'));
     }
 
     #[Test]

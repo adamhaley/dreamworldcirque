@@ -95,13 +95,7 @@ class ProspectResource extends Resource
                 TextEntry::make('submitted_at')->dateTime(),
                 TextEntry::make('interests')
                     ->placeholder('(none)')
-                    ->formatStateUsing(function (mixed $state): string {
-                        if (is_string($state)) {
-                            $state = json_decode($state, true);
-                        }
-
-                        return empty($state) ? '' : implode(', ', $state);
-                    }),
+                    ->formatStateUsing(fn (mixed $state): string => self::formatInterests($state)),
                 TextEntry::make('message')
                     ->placeholder('(no message)')
                     ->extraAttributes(['style' => 'white-space: pre-line;'])
@@ -208,6 +202,21 @@ class ProspectResource extends Resource
                         ]),
                 ]),
         ]);
+    }
+
+    public static function formatInterests(mixed $state): string
+    {
+        if (is_string($state)) {
+            $decoded = json_decode($state, true);
+
+            if (! is_array($decoded)) {
+                return html_entity_decode($state, ENT_QUOTES | ENT_HTML5);
+            }
+
+            $state = $decoded;
+        }
+
+        return empty($state) ? '' : implode(', ', $state);
     }
 
     public static function getPages(): array
