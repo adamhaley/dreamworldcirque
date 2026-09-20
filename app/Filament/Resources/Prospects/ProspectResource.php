@@ -112,7 +112,7 @@ class ProspectResource extends Resource
                             ->icon(Heroicon::ExclamationTriangle)
                             ->color('warning')
                             ->action(fn (Prospect $record): bool => $record->markStatus(ProspectStatus::Unanswerable, auth()->id())),
-                    ])->label('Classification')->icon(Heroicon::ChevronDown)->button(),
+                    ])->label('Classify')->icon(Heroicon::ChevronDown)->button(),
                 ])
                 ->schema([
                     TextEntry::make('classification')->label('AI suggestion')->badge(),
