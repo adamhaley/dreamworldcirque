@@ -8,6 +8,7 @@ use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
 use App\Models\User;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Filters\SelectFilter;
 use Generator;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
@@ -63,6 +64,23 @@ class ProspectResourceTest extends TestCase
             ->filterTable('status', ProspectStatus::Spam->value)
             ->assertCanSeeTableRecords([$spam])
             ->assertCanNotSeeTableRecords([$pending]);
+    }
+
+    #[Test]
+    public function it_only_offers_human_meaningful_status_filters(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        Livewire::test(ManageProspects::class)
+            ->assertTableFilterExists('status', function (SelectFilter $filter): bool {
+                return array_keys($filter->getOptions()) === [
+                    ProspectStatus::PendingReview->value,
+                    ProspectStatus::DraftReady->value,
+                    ProspectStatus::Spam->value,
+                    ProspectStatus::Unanswerable->value,
+                    ProspectStatus::Replied->value,
+                ];
+            });
     }
 
     #[Test]

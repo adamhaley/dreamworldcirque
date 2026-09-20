@@ -48,7 +48,13 @@ class ProspectResource extends Resource
                 TextColumn::make('submitted_at')->dateTime()->sortable(),
             ])
             ->filters([
-                SelectFilter::make('status')->options(ProspectStatus::class),
+                SelectFilter::make('status')->options([
+                    ProspectStatus::PendingReview->value => ProspectStatus::PendingReview->getLabel(),
+                    ProspectStatus::DraftReady->value => ProspectStatus::DraftReady->getLabel(),
+                    ProspectStatus::Spam->value => ProspectStatus::Spam->getLabel(),
+                    ProspectStatus::Unanswerable->value => ProspectStatus::Unanswerable->getLabel(),
+                    ProspectStatus::Replied->value => ProspectStatus::Replied->getLabel(),
+                ]),
                 SelectFilter::make('form_type')->options(fn (): array => Prospect::query()
                     ->whereNotNull('form_type')
                     ->distinct()
