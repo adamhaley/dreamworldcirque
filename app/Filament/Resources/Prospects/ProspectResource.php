@@ -108,8 +108,8 @@ class ProspectResource extends Resource
                     ->columnSpanFull(),
             ])->columns(2),
 
-            Section::make('Human review')
-                ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::PendingReview || $record->human_classification !== null)
+            Section::make('Review')
+                ->visible(fn (Prospect $record): bool => $record->classification !== null || $record->human_classification !== null)
                 ->afterHeader([
                     ActionGroup::make([
                         Action::make('markValid')
@@ -134,26 +134,27 @@ class ProspectResource extends Resource
                         ->visible(fn (?Prospect $record): bool => $record?->status === ProspectStatus::PendingReview),
                 ])
                 ->schema([
+                    TextEntry::make('classification')
+                        ->label('AI classification')
+                        ->badge()
+                        ->placeholder('Not classified yet'),
+                    TextEntry::make('classification_confidence')
+                        ->label('AI confidence')
+                        ->suffix('%')
+                        ->placeholder('Not classified yet'),
+                    TextEntry::make('classification_reason')
+                        ->label('AI reasoning')
+                        ->placeholder('No reasoning available')
+                        ->columnSpanFull(),
                     TextEntry::make('human_classification')
-                        ->label('Classification')
+                        ->label('Human decision')
                         ->badge()
                         ->placeholder('Not reviewed yet'),
                     TextEntry::make('reviewedBy.name')
                         ->label('Reviewed by')
                         ->placeholder('Not reviewed yet'),
-                    TextEntry::make('reviewed_at')
-                        ->label('Reviewed at')
-                        ->dateTime()
-                        ->placeholder('Not reviewed yet'),
-                ]),
-
-            Section::make('AI prediction')
-                ->visible(fn (Prospect $record): bool => $record->classification !== null)
-                ->schema([
-                    TextEntry::make('classification')->label('Classification')->badge(),
-                    TextEntry::make('classification_confidence')->suffix('%'),
-                    TextEntry::make('classification_reason')->columnSpanFull(),
-                ]),
+                ])
+                ->columns(2),
 
             Section::make('Reply')
                 ->visible(fn (Prospect $record): bool => in_array($record->status, [ProspectStatus::DraftReady, ProspectStatus::Replied], true))
