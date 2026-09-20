@@ -68,6 +68,16 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_limits_long_names_in_the_table(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $component = Livewire::test(ManageProspects::class);
+
+        $this->assertSame(50, $component->instance()->getTable()->getColumn('name')->getCharacterLimit());
+    }
+
+    #[Test]
     public function it_filters_the_table_by_status(): void
     {
         $this->actingAs(User::factory()->admin()->create());

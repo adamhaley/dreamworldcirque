@@ -40,6 +40,8 @@ class ProspectResource extends Resource
             ->defaultSort('submitted_at', 'desc')
             ->columns([
                 TextColumn::make('name')
+                    ->limit(50)
+                    ->tooltip(fn (Prospect $record): ?string => mb_strlen($record->name ?? '') > 50 ? $record->name : null)
                     ->description(fn (Prospect $record): ?string => trim(($record->email ?? '').($record->phone ? ' · '.$record->phone : '')) ?: null)
                     ->searchable(),
                 TextColumn::make('human_classification')
