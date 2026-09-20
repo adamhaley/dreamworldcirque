@@ -1125,7 +1125,8 @@ a {
 }
 
 .quote-band {
-  padding: 2.5rem;
+  margin: 0;
+  padding: clamp(1.25rem, 5vw, 2.5rem);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1135,7 +1136,7 @@ a {
 .quote-text {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-size: clamp(1.3rem, 5.5vw, 3rem);
   line-height: 1.1;
   letter-spacing: -0.03em;
 }

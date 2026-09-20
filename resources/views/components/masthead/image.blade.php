@@ -1,4 +1,4 @@
-@props(['page', 'buttonLabel' => 'Get a Quote', 'buttonHref' => '/contact/'])
+@props(['page', 'buttonLabel' => 'Get a Quote', 'buttonHref' => '/#contact'])
 <header class="image-masthead">
   @if ($page->hero_image)
   <img class="masthead-image" src="/storage/{{ $page->hero_image }}" alt="" aria-hidden="true" />
