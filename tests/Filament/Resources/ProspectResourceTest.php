@@ -8,6 +8,7 @@ use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
 use App\Models\User;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Generator;
 use Illuminate\Support\Facades\Queue;
@@ -51,6 +52,19 @@ class ProspectResourceTest extends TestCase
         $prospects = Prospect::factory()->count(2)->create();
 
         Livewire::test(ManageProspects::class)->assertCanSeeTableRecords($prospects);
+    }
+
+    #[Test]
+    public function it_places_the_view_action_before_the_data_columns(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $component = Livewire::test(ManageProspects::class);
+
+        $this->assertSame(
+            RecordActionsPosition::BeforeColumns,
+            $component->instance()->getTable()->getRecordActionsPosition(),
+        );
     }
 
     #[Test]

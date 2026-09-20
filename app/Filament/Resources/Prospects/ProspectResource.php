@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
@@ -66,7 +67,8 @@ class ProspectResource extends Resource
             ->deferFilters(false)
             ->recordActions([
                 ViewAction::make()->slideOver(),
-            ]);
+            ])
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
 
     public static function infolist(Schema $schema): Schema
