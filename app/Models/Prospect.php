@@ -1,0 +1,125 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\ProspectClassification;
+use App\Enums\ProspectStatus;
+use App\Jobs\ClassifyProspect;
+use App\Jobs\GenerateProspectReply;
+use App\Mail\ProspectReplyMail;
+use Database\Factories\ProspectFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Mail;
+
+/**
+ * @property list<string>|null $interests
+ * @property array<string, mixed>|null $raw_payload
+ */
+#[Fillable([
+    'source', 'source_external_id', 'submitted_at', 'form_type', 'name', 'email', 'phone', 'website',
+    'message', 'interests', 'submission_count',
+    'classification', 'classification_confidence', 'classification_reason', 'human_classification', 'classified_at',
+    'status', 'review_note', 'reviewed_by_user_id', 'reviewed_at',
+    'generated_reply', 'final_reply', 'generation_reason', 'generated_at', 'replied_at',
+    'raw_payload',
+])]
+class Prospect extends Model
+{
+    /** @use HasFactory<ProspectFactory> */
+    use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'submitted_at' => 'datetime',
+            'interests' => 'array',
+            'classification' => ProspectClassification::class,
+            'classification_confidence' => 'integer',
+            'human_classification' => ProspectClassification::class,
+            'classified_at' => 'datetime',
+            'status' => ProspectStatus::class,
+            'reviewed_at' => 'datetime',
+            'generated_at' => 'datetime',
+            'replied_at' => 'datetime',
+            'raw_payload' => 'array',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Prospect $prospect): void {
+            if ($prospect->status === ProspectStatus::PendingClassification) {
+                ClassifyProspect::dispatch($prospect->id);
+            }
+        });
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    /**
+     * Moves the prospect to a new pipeline stage and fires whatever that
+     * transition implies — Valid queues a reply draft, Replied sends the
+     * actual email — so reviewers never have to trigger those by hand.
+     */
+    public function markStatus(ProspectStatus $status, ?int $reviewerId = null, ?string $note = null): bool
+    {
+        $updated = $this->update([
+            'status' => $status,
+            'review_note' => $note ?? $this->review_note,
+            'reviewed_by_user_id' => $reviewerId ?? $this->reviewed_by_user_id,
+            'reviewed_at' => now(),
+            'human_classification' => $this->humanClassificationFor($status) ?? $this->human_classification,
+        ]);
+
+        if (! $updated) {
+            return false;
+        }
+
+        if ($status === ProspectStatus::Valid) {
+            $this->update(['status' => ProspectStatus::DraftGenerating]);
+            GenerateProspectReply::dispatch($this->id);
+        }
+
+        if ($status === ProspectStatus::Replied) {
+            $this->sendReply();
+        }
+
+        return true;
+    }
+
+    /**
+     * The classification decisions a human actually makes (Valid/Spam/
+     * Unanswerable) share their values with ProspectClassification, so the
+     * human's call can be recorded permanently here — unlike `status`, which
+     * keeps advancing through the reply pipeline after a Valid decision.
+     */
+    private function humanClassificationFor(ProspectStatus $status): ?ProspectClassification
+    {
+        return match ($status) {
+            ProspectStatus::Valid => ProspectClassification::Valid,
+            ProspectStatus::Spam => ProspectClassification::Spam,
+            ProspectStatus::Unanswerable => ProspectClassification::Unanswerable,
+            default => null,
+        };
+    }
+
+    private function sendReply(): void
+    {
+        if ($this->email === null || $this->final_reply === null) {
+            return;
+        }
+
+        Mail::to($this->email)->send(new ProspectReplyMail($this));
+        $this->update(['replied_at' => now()]);
+    }
+}

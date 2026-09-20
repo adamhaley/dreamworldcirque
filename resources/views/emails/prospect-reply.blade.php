@@ -1,0 +1,1 @@
+{{ $prospect->final_reply }}
