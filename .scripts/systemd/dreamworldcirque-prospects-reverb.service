@@ -1,0 +1,15 @@
+[Unit]
+Description=Dream World Cirque Prospects pipeline Reverb WebSocket server
+After=network.target
+
+[Service]
+User=ahmedia
+WorkingDirectory=/home/ahmedia/domains/dreamworldcirque.ahmedia.ai/public_html
+# Port 8080 was already taken by nginx on this box (confirmed via `ss -tlnp`
+# 2026-09-20) -- 6001 confirmed free at the same time.
+ExecStart=/usr/local/php84/bin/php artisan reverb:start --host=0.0.0.0 --port=6001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

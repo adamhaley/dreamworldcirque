@@ -1,0 +1,15 @@
+[Unit]
+Description=Dream World Cirque Prospects pipeline queue worker
+After=network.target mysqld.service
+
+[Service]
+User=ahmedia
+WorkingDirectory=/home/ahmedia/domains/dreamworldcirque.ahmedia.ai/public_html
+ExecStart=/usr/local/php84/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+# max-time recycles the worker hourly so it always runs the code from the
+# most recent deploy rather than a stale opcache'd copy from before it.
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

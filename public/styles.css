@@ -359,8 +359,16 @@ a {
    lands with the target's true top hidden under it unless compensated.
    Scoped to sections with an id, since those are exactly the ones used as
    scroll targets (about/events/film-tv/services/gallery/contact). */
-.section[id] {
+.section[id],
+.scroll-target {
   scroll-margin-top: 7rem;
+}
+
+/* The homepage contact block is the final in-page target. Giving it at
+   least a viewport of space prevents the browser's maximum scroll position
+   from clamping #contact while the gallery is still visible above it. */
+.home-contact-section {
+  min-height: calc(100vh - 7rem);
 }
 
 .eyebrow {
