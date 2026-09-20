@@ -1,6 +1,12 @@
 <x-layouts.site :page="$page">
   @push('head')
   <link rel="preload" href="/assets/fonts/Birmingham.ttf" as="font" type="font/ttf" crossorigin />
+  {{-- Warms the browser cache with every subpage's hero image while the visitor is still on
+       the homepage, so clicking through to a subpage shows its hero instantly instead of
+       waiting on a fresh download. Low-priority background fetch; never blocks this page. --}}
+  @foreach ($prefetchHeroImages as $heroImage)
+  <link rel="prefetch" href="/storage/{{ $heroImage }}" as="image" />
+  @endforeach
   @endpush
 
   <header class="gradient-masthead" id="top">
