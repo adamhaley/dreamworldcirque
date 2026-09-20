@@ -45,6 +45,13 @@ class PageController extends Controller
                     ->first(),
                 'carouselPhotos' => GalleryPhoto::query()->where('in_homepage_carousel', true)->orderBy('sort_order')->get(),
                 'quotes' => Quote::query()->active()->get(),
+                'prefetchHeroImages' => Page::query()
+                    ->where('is_published', true)
+                    ->where('template', '!=', PageTemplate::Home)
+                    ->whereNotNull('hero_image')
+                    ->pluck('hero_image')
+                    ->unique()
+                    ->values(),
             ],
             PageTemplate::ServicesIndex => [
                 'page' => $page->load(['children' => fn ($query) => $query->where('is_published', true)]),
