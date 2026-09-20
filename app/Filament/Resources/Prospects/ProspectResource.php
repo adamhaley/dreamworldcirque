@@ -98,17 +98,17 @@ class ProspectResource extends Resource
                 ->afterHeader([
                     ActionGroup::make([
                         Action::make('markValid')
-                            ->label('Confirm Valid')
+                            ->label('Valid')
                             ->icon(Heroicon::CheckCircle)
                             ->color('success')
                             ->action(fn (Prospect $record): bool => $record->markStatus(ProspectStatus::Valid, auth()->id())),
                         Action::make('markSpam')
-                            ->label('Mark Spam')
+                            ->label('Spam')
                             ->icon(Heroicon::XCircle)
                             ->color('gray')
                             ->action(fn (Prospect $record): bool => $record->markStatus(ProspectStatus::Spam, auth()->id())),
                         Action::make('markUnanswerable')
-                            ->label('Mark Unanswerable')
+                            ->label('Unanswerable')
                             ->icon(Heroicon::ExclamationTriangle)
                             ->color('warning')
                             ->action(fn (Prospect $record): bool => $record->markStatus(ProspectStatus::Unanswerable, auth()->id())),
