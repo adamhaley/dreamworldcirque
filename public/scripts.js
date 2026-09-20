@@ -1,3 +1,25 @@
+// Re-corrects the initial scroll-to-anchor on a fresh page load (e.g. a
+// "Get a Quote" CTA linking here from another page). The browser jumps to
+// the URL's #hash very early, before the hero's video/fonts have finished
+// loading and settling the page's final height, then never re-does that
+// jump once the page grows — leaving the target well short of where it
+// should land. Clicking the same anchor on an already-loaded page doesn't
+// hit this, since nothing shifts height after the fact.
+(function () {
+  if (!location.hash) return;
+  const target = document.querySelector(location.hash);
+  if (!target) return;
+
+  window.addEventListener('load', function () {
+    Promise.all([
+      document.fonts ? document.fonts.ready : Promise.resolve(),
+      new Promise(function (resolve) { requestAnimationFrame(function () { requestAnimationFrame(resolve); }); }),
+    ]).then(function () {
+      target.scrollIntoView();
+    });
+  });
+})();
+
 (function () {
   const grids = document.querySelectorAll('[data-thumbnail-gallery]');
   if (!grids.length) return;

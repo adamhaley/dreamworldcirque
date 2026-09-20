@@ -354,6 +354,15 @@ a {
   padding: var(--section-space) 0;
 }
 
+/* .site-header is position: fixed and floats over the page (see its own
+   comment), so an in-page anchor jump — nav links, "Get a Quote" CTAs —
+   lands with the target's true top hidden under it unless compensated.
+   Scoped to sections with an id, since those are exactly the ones used as
+   scroll targets (about/events/film-tv/services/gallery/contact). */
+.section[id] {
+  scroll-margin-top: 7rem;
+}
+
 .eyebrow {
   margin: 0 0 1rem;
   color: var(--color-accent);
