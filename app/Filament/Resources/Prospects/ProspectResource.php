@@ -42,7 +42,16 @@ class ProspectResource extends Resource
                 TextColumn::make('name')
                     ->description(fn (Prospect $record): ?string => trim(($record->email ?? '').($record->phone ? ' · '.$record->phone : '')) ?: null)
                     ->searchable(),
+                TextColumn::make('human_classification')
+                    ->label('Human review')
+                    ->badge()
+                    ->placeholder('Pending'),
+                TextColumn::make('classification')
+                    ->label('AI classification')
+                    ->badge()
+                    ->placeholder('Pending'),
                 TextColumn::make('status')
+                    ->label('Pipeline status')
                     ->badge()
                     ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null),
                 TextColumn::make('form_type')->badge()->color('gray'),
@@ -99,8 +108,8 @@ class ProspectResource extends Resource
                     ->columnSpanFull(),
             ])->columns(2),
 
-            Section::make('Classification')
-                ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::PendingReview)
+            Section::make('Human review')
+                ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::PendingReview || $record->human_classification !== null)
                 ->afterHeader([
                     ActionGroup::make([
                         Action::make('markValid')
@@ -118,10 +127,30 @@ class ProspectResource extends Resource
                             ->icon(Heroicon::ExclamationTriangle)
                             ->color('warning')
                             ->action(fn (Prospect $record): bool => $record->markStatus(ProspectStatus::Unanswerable, auth()->id())),
-                    ])->label('Classify')->icon(Heroicon::ChevronDown)->button(),
+                    ])
+                        ->label('Classify')
+                        ->icon(Heroicon::ChevronDown)
+                        ->button()
+                        ->visible(fn (?Prospect $record): bool => $record?->status === ProspectStatus::PendingReview),
                 ])
                 ->schema([
-                    TextEntry::make('classification')->label('AI suggestion')->badge(),
+                    TextEntry::make('human_classification')
+                        ->label('Classification')
+                        ->badge()
+                        ->placeholder('Not reviewed yet'),
+                    TextEntry::make('reviewedBy.name')
+                        ->label('Reviewed by')
+                        ->placeholder('Not reviewed yet'),
+                    TextEntry::make('reviewed_at')
+                        ->label('Reviewed at')
+                        ->dateTime()
+                        ->placeholder('Not reviewed yet'),
+                ]),
+
+            Section::make('AI prediction')
+                ->visible(fn (Prospect $record): bool => $record->classification !== null)
+                ->schema([
+                    TextEntry::make('classification')->label('Classification')->badge(),
                     TextEntry::make('classification_confidence')->suffix('%'),
                     TextEntry::make('classification_reason')->columnSpanFull(),
                 ]),

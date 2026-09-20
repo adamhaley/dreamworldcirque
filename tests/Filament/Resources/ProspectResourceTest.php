@@ -109,6 +109,19 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_distinguishes_human_review_from_the_ai_classification(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        Prospect::factory()->pendingReview()->create();
+
+        Livewire::test(ManageProspects::class)
+            ->assertSee('Human review')
+            ->assertSee('AI classification')
+            ->assertSee('Pending')
+            ->assertSee('Valid');
+    }
+
+    #[Test]
     public function it_opens_the_view_action_for_a_prospect_without_interests(): void
     {
         $this->actingAs(User::factory()->admin()->create());
