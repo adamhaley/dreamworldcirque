@@ -9,6 +9,7 @@ use App\Models\Prospect;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
@@ -122,13 +123,15 @@ class ProspectResource extends Resource
             ->persistFiltersInSession()
             ->deferFilters(false)
             ->recordActions([
-                ViewAction::make()
+                ViewAction::make('review')
                     ->label('Review')
                     ->icon(Heroicon::Cog6Tooth)
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
+                ViewAction::make('view')->slideOver(),
+                DeleteAction::make(),
             ])
-            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
+            ->recordActionsPosition(RecordActionsPosition::AfterColumns);
     }
 
     private static function applyDefaultTableSort(Builder $query): Builder
@@ -146,10 +149,6 @@ class ProspectResource extends Resource
     {
         return $schema->columns(1)->components([
             Section::make('Inquiry')->schema([
-                TextEntry::make('status')
-                    ->badge()
-                    ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null)
-                    ->columnSpanFull(),
                 TextEntry::make('name')->placeholder('(not given)'),
                 TextEntry::make('email')->placeholder('(not given)'),
                 TextEntry::make('phone')->placeholder('(not given)'),
@@ -165,7 +164,7 @@ class ProspectResource extends Resource
             ])->columns(2),
 
             Section::make('Review')
-                ->visible(fn (Prospect $record): bool => $record->classification !== null || $record->human_classification !== null)
+                ->visible(fn (Prospect $record): bool => $record->status->isActive() || $record->classification !== null || $record->human_classification !== null)
                 ->afterHeader([
                     ActionGroup::make([
                         Action::make('markValid')
@@ -189,6 +188,10 @@ class ProspectResource extends Resource
                         ->button(),
                 ])
                 ->schema([
+                    TextEntry::make('status')
+                        ->badge()
+                        ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null)
+                        ->columnSpanFull(),
                     TextEntry::make('classification')
                         ->label('AI classification')
                         ->badge()
@@ -216,7 +219,7 @@ class ProspectResource extends Resource
                 ->schema([
                     Section::make('AI Draft')
                         ->visible(fn (Prospect $record): bool => ! self::hasEditedReply($record))
-                        ->description('Generated automatically. Read-only — edit the reply below instead of this.')
+                        ->description('Generated automatically. Edit your final reply below. Future automatic generation may learn from your edits.')
                         ->afterHeader([
                             Action::make('regenerateDraft')
                                 ->label('Regenerate Draft')
@@ -226,7 +229,10 @@ class ProspectResource extends Resource
                         ])
                         ->schema([
                             TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                            TextEntry::make('generation_reason')->label('Why the AI drafted it this way')->columnSpanFull(),
+                            TextEntry::make('generation_reason')
+                                ->label(new HtmlString('<em>Why the AI drafted it this way</em>'))
+                                ->extraAttributes(['style' => 'font-style: italic;'])
+                                ->columnSpanFull(),
                             Actions::make([
                                 self::editReplyAction('editDraftReply'),
                                 self::approveAndSendAction('approveDraftAndSend'),
@@ -248,7 +254,10 @@ class ProspectResource extends Resource
                                 ->collapsed()
                                 ->schema([
                                     TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                                    TextEntry::make('generation_reason')->label('Why the AI drafted it this way')->columnSpanFull(),
+                                    TextEntry::make('generation_reason')
+                                        ->label(new HtmlString('<em>Why the AI drafted it this way</em>'))
+                                        ->extraAttributes(['style' => 'font-style: italic;'])
+                                        ->columnSpanFull(),
                                 ]),
                         ]),
                 ]),

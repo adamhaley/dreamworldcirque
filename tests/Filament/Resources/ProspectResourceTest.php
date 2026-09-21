@@ -8,6 +8,7 @@ use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
 use App\Models\User;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Enums\RecordActionsPosition;
@@ -108,16 +109,24 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_places_the_view_action_before_the_data_columns(): void
+    public function it_places_the_review_view_and_delete_actions_after_the_data_columns(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
         $component = Livewire::test(ManageProspects::class);
 
         $this->assertSame(
-            RecordActionsPosition::BeforeColumns,
+            RecordActionsPosition::AfterColumns,
             $component->instance()->getTable()->getRecordActionsPosition(),
         );
+
+        $actions = $component->instance()->getTable()->getFlatRecordActions();
+
+        $this->assertSame(['review', 'view', 'delete'], array_keys($actions));
+        $this->assertInstanceOf(ViewAction::class, $actions['review']);
+        $this->assertInstanceOf(ViewAction::class, $actions['view']);
+        $this->assertInstanceOf(DeleteAction::class, $actions['delete']);
+        $this->assertSame('Review', $actions['review']->getLabel());
     }
 
     #[Test]
@@ -228,7 +237,7 @@ class ProspectResourceTest extends TestCase
         $this->assertSame(Heroicon::Cog6Tooth, $reviewAction->getIcon());
         $this->assertTrue($reviewAction->isModalSlideOver());
 
-        $component->callTableAction(ViewAction::class, $prospect)->assertOk();
+        $component->callTableAction('review', $prospect)->assertOk();
     }
 
     #[Test]
@@ -238,7 +247,7 @@ class ProspectResourceTest extends TestCase
         $prospect = Prospect::factory()->draftReady()->create();
 
         Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
+            ->callTableAction('review', $prospect)
             ->assertOk();
     }
 
@@ -251,7 +260,7 @@ class ProspectResourceTest extends TestCase
         ]);
 
         Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
+            ->callTableAction('review', $prospect)
             ->assertSee('Drafting reply')
             ->assertSeeHtml('animation: dwc-status-spin');
     }
