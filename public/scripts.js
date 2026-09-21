@@ -4,7 +4,11 @@
 // 1. A fresh page load with a #hash in the URL (e.g. a "Get a Quote" CTA
 //    linking here from another page) — the browser jumps very early, before
 //    the hero's video/fonts have finished loading and settled the page's
-//    final height.
+//    final height. The inline script at the top of the layout's <head>
+//    already strips the hash before the browser gets a chance to act on
+//    it (see its own comment for why), stashing it on
+//    window.__pendingScrollHash instead, so this only ever performs one
+//    clean scroll rather than a visible wrong-then-right double jump.
 // 2. An in-page click on a same-page anchor (e.g. the hero's own "Request a
 //    Quote" button) — scroll-behavior: smooth computes the scroll distance
 //    once, at click time. If the logo wall's lazily-loaded client images
@@ -17,6 +21,16 @@
 (function () {
   function settleThenScrollTo(target) {
     const pendingImages = Array.from(document.images).filter(function (img) { return !img.complete; });
+
+    // The logo wall's images are loading="lazy" and only start fetching
+    // once scrolled near -- which never happens while we're deliberately
+    // holding scroll position until settled right here. Left alone,
+    // waiting on them below would deadlock: nothing ever triggers their
+    // load, so this promise chain would never resolve and the page would
+    // never scroll at all. Forcing them to load now breaks that deadlock.
+    pendingImages.forEach(function (img) {
+      if (img.loading === 'lazy') img.loading = 'eager';
+    });
 
     Promise.all([
       document.fonts ? document.fonts.ready : Promise.resolve(),
@@ -31,8 +45,8 @@
     });
   }
 
-  if (location.hash) {
-    const initialTarget = document.querySelector(location.hash);
+  if (window.__pendingScrollHash) {
+    const initialTarget = document.querySelector(window.__pendingScrollHash);
     if (initialTarget) {
       window.addEventListener('load', function () { settleThenScrollTo(initialTarget); });
     }

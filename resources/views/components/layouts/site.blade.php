@@ -2,6 +2,24 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>
+      // Strips a landing #hash from the URL before the browser gets a
+      // chance to jump to it natively -- that native jump happens against
+      // whatever the page's layout is at that very early moment (before
+      // the hero video, webfonts, and the logo wall's lazy images have
+      // settled its true height), landing short partway down the page.
+      // scripts.js then does its own single, correct scroll once
+      // everything has actually settled (see its settleThenScrollTo), so
+      // without this the visible result is a jarring stop-then-jump: a
+      // brief, wrong landing spot followed by a second scroll to the real
+      // one. Stashing the hash on window lets scripts.js still know where
+      // to scroll once it runs.
+      (function () {
+        if (!location.hash) return;
+        window.__pendingScrollHash = location.hash;
+        history.replaceState(null, '', location.pathname + location.search);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ $page->meta_title ?: $page->title.' | Dream World Cirque' }}</title>
