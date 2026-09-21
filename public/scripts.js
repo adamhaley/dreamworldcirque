@@ -1,22 +1,54 @@
-// Re-corrects the initial scroll-to-anchor on a fresh page load (e.g. a
-// "Get a Quote" CTA linking here from another page). The browser jumps to
-// the URL's #hash very early, before the hero's video/fonts have finished
-// loading and settling the page's final height, then never re-does that
-// jump once the page grows — leaving the target well short of where it
-// should land. Clicking the same anchor on an already-loaded page doesn't
-// hit this, since nothing shifts height after the fact.
+// Re-corrects a scroll-to-anchor jump once the page's true height settles.
+// Covers two cases that both land short and leave a gap above the target:
+//
+// 1. A fresh page load with a #hash in the URL (e.g. a "Get a Quote" CTA
+//    linking here from another page) — the browser jumps very early, before
+//    the hero's video/fonts have finished loading and settled the page's
+//    final height.
+// 2. An in-page click on a same-page anchor (e.g. the hero's own "Request a
+//    Quote" button) — scroll-behavior: smooth computes the scroll distance
+//    once, at click time. If the logo wall's lazily-loaded client images
+//    haven't started fetching yet (they're off-screen on a fresh visit),
+//    they load in and push everything below them down mid-scroll, but the
+//    already-in-flight scroll never re-targets.
+//
+// Re-running scrollIntoView() once fonts and any still-loading images
+// settle corrects the drift in both cases.
 (function () {
-  if (!location.hash) return;
-  const target = document.querySelector(location.hash);
-  if (!target) return;
+  function settleThenScrollTo(target) {
+    const pendingImages = Array.from(document.images).filter(function (img) { return !img.complete; });
 
-  window.addEventListener('load', function () {
     Promise.all([
       document.fonts ? document.fonts.ready : Promise.resolve(),
       new Promise(function (resolve) { requestAnimationFrame(function () { requestAnimationFrame(resolve); }); }),
-    ]).then(function () {
+    ].concat(pendingImages.map(function (img) {
+      return new Promise(function (resolve) {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    }))).then(function () {
       target.scrollIntoView();
     });
+  }
+
+  if (location.hash) {
+    const initialTarget = document.querySelector(location.hash);
+    if (initialTarget) {
+      window.addEventListener('load', function () { settleThenScrollTo(initialTarget); });
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link || link.closest('.scroll-down-link, .back-to-top-link')) return;
+
+    const hash = link.getAttribute('href');
+    if (!hash || hash.length < 2) return;
+
+    const target = document.querySelector(hash);
+    if (!target) return;
+
+    settleThenScrollTo(target);
   });
 })();
 
