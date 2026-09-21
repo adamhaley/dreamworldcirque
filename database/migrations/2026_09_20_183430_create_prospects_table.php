@@ -14,7 +14,9 @@ return new class extends Migration
             $table->string('source_external_id')->nullable();
             $table->timestamp('submitted_at');
             $table->string('form_type')->nullable();
-            $table->string('name')->nullable();
+            // Legacy form submissions can put arbitrary bot payloads in the name field.
+            // TEXT keeps those records importable on strict MySQL while normal names remain short.
+            $table->text('name')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('website')->nullable();

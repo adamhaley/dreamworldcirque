@@ -2,23 +2,28 @@
 
 namespace App\Filament\Resources\Prospects;
 
+use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Models\Prospect;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
@@ -37,15 +42,50 @@ class ProspectResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('submitted_at', 'desc')
-            ->modifyQueryUsing(fn ($query) => $query->where(function ($query): void {
-                $query
-                    ->whereNull('classification')
-                    ->orWhere('classification', '!=', 'spam')
-                    ->orWhereNull('human_classification')
-                    ->orWhere('human_classification', '!=', 'spam');
-            }))
+            ->defaultSort(fn (Builder $query): Builder => self::applyDefaultTableSort($query))
+            ->modifyQueryUsing(fn ($query) => $query
+                ->where(function ($query): void {
+                    $query
+                        ->whereNull('classification')
+                        ->orWhere('classification', '!=', ProspectClassification::Spam->value);
+                })
+                ->where(function ($query): void {
+                    $query
+                        ->whereNull('human_classification')
+                        ->orWhere('human_classification', '!=', ProspectClassification::Spam->value);
+                }))
             ->columns([
+                IconColumn::make('review_indicator')
+                    ->label('')
+                    ->state(fn (Prospect $record): string => match ($record->status) {
+                        ProspectStatus::PendingReview => 'ready_for_review',
+                        ProspectStatus::DraftReady => 'answer_review_pending',
+                        ProspectStatus::Replied => 'message_sent',
+                        ProspectStatus::Spam, ProspectStatus::Unanswerable => 'no_action_needed',
+                        ProspectStatus::PendingClassification => 'classifying',
+                        ProspectStatus::Valid, ProspectStatus::DraftGenerating => 'drafting',
+                    })
+                    ->icon(fn (string $state): BackedEnum|HtmlString => match ($state) {
+                        'ready_for_review' => Heroicon::Clock,
+                        'answer_review_pending' => Heroicon::EnvelopeOpen,
+                        'message_sent' => Heroicon::Envelope,
+                        'no_action_needed' => Heroicon::EnvelopeOpen,
+                        'classifying', 'drafting' => self::spinningStatusIcon(),
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'ready_for_review', 'answer_review_pending' => 'warning',
+                        'classifying', 'drafting' => 'info',
+                        'message_sent' => 'success',
+                        'no_action_needed' => 'gray',
+                    })
+                    ->tooltip(fn (string $state): string => match ($state) {
+                        'ready_for_review' => 'Ready for review',
+                        'answer_review_pending' => 'Answer review pending',
+                        'message_sent' => 'Message sent',
+                        'no_action_needed' => 'No action needed',
+                        'classifying' => 'Classifying prospect',
+                        'drafting' => 'Drafting reply',
+                    }),
                 TextColumn::make('name')
                     ->limit(50)
                     ->tooltip(fn (Prospect $record): ?string => mb_strlen($record->name ?? '') > 50 ? $record->name : null)
@@ -61,8 +101,7 @@ class ProspectResource extends Resource
                     ->placeholder('Pending'),
                 TextColumn::make('status')
                     ->label('Pipeline status')
-                    ->badge()
-                    ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null),
+                    ->badge(),
                 TextColumn::make('form_type')->badge()->color('gray'),
                 TextColumn::make('submitted_at')->dateTime()->sortable(),
             ])
@@ -84,19 +123,32 @@ class ProspectResource extends Resource
             ->persistFiltersInSession()
             ->deferFilters(false)
             ->recordActions([
-                ViewAction::make()->slideOver(),
+                ViewAction::make('review')
+                    ->label('Review')
+                    ->icon(Heroicon::Cog6Tooth)
+                    ->modalCancelActionLabel('Close')
+                    ->slideOver(),
+                ViewAction::make('view')->slideOver(),
+                DeleteAction::make(),
             ])
-            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
+            ->recordActionsPosition(RecordActionsPosition::AfterColumns);
+    }
+
+    private static function applyDefaultTableSort(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('case when prospects.status = ? then 0 when prospects.status = ? then 1 else 2 end', [
+                ProspectStatus::DraftReady->value,
+                ProspectStatus::PendingReview->value,
+            ])
+            ->orderByDesc('prospects.submitted_at')
+            ->orderByDesc('prospects.id');
     }
 
     public static function infolist(Schema $schema): Schema
     {
         return $schema->columns(1)->components([
             Section::make('Inquiry')->schema([
-                TextEntry::make('status')
-                    ->badge()
-                    ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null)
-                    ->columnSpanFull(),
                 TextEntry::make('name')->placeholder('(not given)'),
                 TextEntry::make('email')->placeholder('(not given)'),
                 TextEntry::make('phone')->placeholder('(not given)'),
@@ -112,7 +164,7 @@ class ProspectResource extends Resource
             ])->columns(2),
 
             Section::make('Review')
-                ->visible(fn (Prospect $record): bool => $record->classification !== null || $record->human_classification !== null)
+                ->visible(fn (Prospect $record): bool => $record->status->isActive() || $record->classification !== null || $record->human_classification !== null)
                 ->afterHeader([
                     ActionGroup::make([
                         Action::make('markValid')
@@ -136,6 +188,10 @@ class ProspectResource extends Resource
                         ->button(),
                 ])
                 ->schema([
+                    TextEntry::make('status')
+                        ->badge()
+                        ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null)
+                        ->columnSpanFull(),
                     TextEntry::make('classification')
                         ->label('AI classification')
                         ->badge()
@@ -162,7 +218,8 @@ class ProspectResource extends Resource
                 ->visible(fn (Prospect $record): bool => in_array($record->status, [ProspectStatus::DraftReady, ProspectStatus::Replied], true))
                 ->schema([
                     Section::make('AI Draft')
-                        ->description('Generated automatically. Read-only — edit the reply below instead of this.')
+                        ->visible(fn (Prospect $record): bool => ! self::hasEditedReply($record))
+                        ->description('Generated automatically. Edit your final reply below. Future automatic generation may learn from your edits.')
                         ->afterHeader([
                             Action::make('regenerateDraft')
                                 ->label('Regenerate Draft')
@@ -172,42 +229,36 @@ class ProspectResource extends Resource
                         ])
                         ->schema([
                             TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                            TextEntry::make('generation_reason')->label('Why the AI drafted it this way')->columnSpanFull(),
+                            TextEntry::make('generation_reason')
+                                ->label(new HtmlString('<em>Why the AI drafted it this way</em>'))
+                                ->extraAttributes(['style' => 'font-style: italic;'])
+                                ->columnSpanFull(),
+                            Actions::make([
+                                self::editReplyAction('editDraftReply'),
+                                self::approveAndSendAction('approveDraftAndSend'),
+                            ])->alignEnd(),
+                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
                         ]),
 
-                    Section::make('Reply to Send')
-                        ->description(fn (Prospect $record): string => $record->status === ProspectStatus::Replied
-                            ? 'This is the text that was actually sent to the prospect.'
-                            : 'Starts as a copy of the AI draft above. Edit and save, or approve to send as-is.')
-                        ->afterHeader([
-                            ActionGroup::make([
-                                Action::make('editReply')
-                                    ->label('Edit Reply')
-                                    ->icon(Heroicon::PencilSquare)
-                                    ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
-                                    ->schema([
-                                        Textarea::make('final_reply')->label('Reply text')->required()->rows(10),
-                                    ])
-                                    ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-                                    ->action(fn (array $data, Prospect $record) => $record->update(['final_reply' => $data['final_reply']])),
-                                Action::make('approveAndSend')
-                                    ->label('Approve & Send')
-                                    ->icon(Heroicon::PaperAirplane)
-                                    ->color('success')
-                                    ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
-                                    ->schema([
-                                        Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
-                                    ])
-                                    ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-                                    ->action(function (array $data, Prospect $record): void {
-                                        $record->update(['final_reply' => $data['final_reply']]);
-                                        $record->markStatus(ProspectStatus::Replied, auth()->id());
-                                    }),
-                            ])->label('Reply actions')->icon(Heroicon::ChevronDown)->button(),
-                        ])
+                    Section::make('Edited Reply')
+                        ->visible(fn (Prospect $record): bool => self::hasEditedReply($record))
                         ->schema([
-                            TextEntry::make('final_reply')->hiddenLabel()->placeholder('(not yet edited — starts from the AI draft above)')->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->placeholder('(not sent yet)'),
+                            TextEntry::make('final_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
+                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
+                            Actions::make([
+                                self::editReplyAction('editEditedReply'),
+                                self::approveAndSendAction('approveEditedAndSend'),
+                            ])->alignEnd(),
+                            Section::make('AI Draft')
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
+                                    TextEntry::make('generation_reason')
+                                        ->label(new HtmlString('<em>Why the AI drafted it this way</em>'))
+                                        ->extraAttributes(['style' => 'font-style: italic;'])
+                                        ->columnSpanFull(),
+                                ]),
                         ]),
                 ]),
         ]);
@@ -226,6 +277,45 @@ class ProspectResource extends Resource
         }
 
         return empty($state) ? '' : implode(', ', $state);
+    }
+
+    private static function hasEditedReply(Prospect $record): bool
+    {
+        return filled($record->final_reply) && $record->final_reply !== $record->generated_reply;
+    }
+
+    private static function editReplyAction(string $name): Action
+    {
+        return Action::make($name)
+            ->label('Edit reply')
+            ->icon(Heroicon::PencilSquare)
+            ->button()
+            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
+            ->modalHeading('Edit reply')
+            ->modalSubmitActionLabel('Save reply')
+            ->schema([
+                Textarea::make('final_reply')->label('Reply text')->required()->rows(10),
+            ])
+            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
+            ->action(fn (array $data, Prospect $record) => $record->update(['final_reply' => $data['final_reply']]));
+    }
+
+    private static function approveAndSendAction(string $name): Action
+    {
+        return Action::make($name)
+            ->label('Approve & Send')
+            ->icon(Heroicon::PaperAirplane)
+            ->color('success')
+            ->button()
+            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
+            ->schema([
+                Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
+            ])
+            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
+            ->action(function (array $data, Prospect $record): void {
+                $record->update(['final_reply' => $data['final_reply']]);
+                $record->markStatus(ProspectStatus::Replied, auth()->id());
+            });
     }
 
     public static function getPages(): array

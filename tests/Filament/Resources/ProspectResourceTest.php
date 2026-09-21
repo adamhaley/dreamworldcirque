@@ -2,12 +2,15 @@
 
 namespace Tests\Filament\Resources;
 
+use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
 use App\Models\User;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Generator;
@@ -55,16 +58,75 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_places_the_view_action_before_the_data_columns(): void
+    public function it_defaults_to_answer_reviews_then_human_reviews_then_newest_other_records(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $newerAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subHour()]);
+        $olderAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subDays(2)]);
+        $newerHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()]);
+        $olderHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()->subDays(3)]);
+        $newerOther = Prospect::factory()->create([
+            'status' => ProspectStatus::Replied,
+            'submitted_at' => now()->subMinutes(30),
+        ]);
+        $olderOther = Prospect::factory()->create([
+            'status' => ProspectStatus::Unanswerable,
+            'submitted_at' => now()->subDays(4),
+        ]);
+
+        Livewire::test(ManageProspects::class)
+            ->assertCanSeeTableRecords([
+                $newerAnswerReview,
+                $olderAnswerReview,
+                $newerHumanReview,
+                $olderHumanReview,
+                $newerOther,
+                $olderOther,
+            ], inOrder: true);
+    }
+
+    #[Test]
+    public function it_hides_a_prospect_when_either_ai_or_human_classifies_it_as_spam(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $humanSpam = Prospect::factory()->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => ProspectClassification::Spam,
+        ]);
+        $aiSpam = Prospect::factory()->create([
+            'classification' => ProspectClassification::Spam,
+            'human_classification' => null,
+        ]);
+        $needsReview = Prospect::factory()->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => null,
+        ]);
+
+        Livewire::test(ManageProspects::class)
+            ->assertCanSeeTableRecords([$needsReview])
+            ->assertCanNotSeeTableRecords([$humanSpam, $aiSpam]);
+    }
+
+    #[Test]
+    public function it_places_the_review_view_and_delete_actions_after_the_data_columns(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
         $component = Livewire::test(ManageProspects::class);
 
         $this->assertSame(
-            RecordActionsPosition::BeforeColumns,
+            RecordActionsPosition::AfterColumns,
             $component->instance()->getTable()->getRecordActionsPosition(),
         );
+
+        $actions = $component->instance()->getTable()->getFlatRecordActions();
+
+        $this->assertSame(['review', 'view', 'delete'], array_keys($actions));
+        $this->assertInstanceOf(ViewAction::class, $actions['review']);
+        $this->assertInstanceOf(ViewAction::class, $actions['view']);
+        $this->assertInstanceOf(DeleteAction::class, $actions['delete']);
+        $this->assertSame('Review', $actions['review']->getLabel());
     }
 
     #[Test]
@@ -75,6 +137,40 @@ class ProspectResourceTest extends TestCase
         $component = Livewire::test(ManageProspects::class);
 
         $this->assertSame(50, $component->instance()->getTable()->getColumn('name')->getCharacterLimit());
+    }
+
+    #[Test]
+    public function it_shows_the_review_indicator_for_the_main_prospect_states(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $readyForReview = Prospect::factory()->pendingReview()->create();
+        $answerReviewPending = Prospect::factory()->draftReady()->create();
+        $messageSent = Prospect::factory()->create(['status' => ProspectStatus::Replied]);
+        $noActionNeeded = Prospect::factory()->spam()->create();
+        $classifying = Prospect::factory()->create();
+        $drafting = Prospect::factory()->create(['status' => ProspectStatus::DraftGenerating]);
+
+        $component = Livewire::test(ManageProspects::class)
+            ->assertTableColumnStateSet('review_indicator', 'ready_for_review', record: $readyForReview)
+            ->assertTableColumnStateSet('review_indicator', 'answer_review_pending', record: $answerReviewPending)
+            ->assertTableColumnStateSet('review_indicator', 'message_sent', record: $messageSent)
+            ->assertTableColumnStateSet('review_indicator', 'no_action_needed', record: $noActionNeeded)
+            ->assertTableColumnStateSet('review_indicator', 'classifying', record: $classifying)
+            ->assertTableColumnStateSet('review_indicator', 'drafting', record: $drafting);
+
+        $indicator = $component->instance()->getTable()->getColumn('review_indicator');
+        $this->assertSame('warning', $indicator->getColor('answer_review_pending'));
+    }
+
+    #[Test]
+    public function it_keeps_the_readable_pipeline_status_column_alongside_the_indicator(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $component = Livewire::test(ManageProspects::class);
+
+        $this->assertSame('Pipeline status', $component->instance()->getTable()->getColumn('status')->getLabel());
     }
 
     #[Test]
@@ -133,10 +229,15 @@ class ProspectResourceTest extends TestCase
     {
         $this->actingAs(User::factory()->admin()->create());
         $prospect = Prospect::factory()->create(['interests' => null]);
+        $component = Livewire::test(ManageProspects::class);
+        $reviewAction = $component->instance()->getTable()->getRecordActions()[0];
 
-        Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
-            ->assertOk();
+        $this->assertInstanceOf(ViewAction::class, $reviewAction);
+        $this->assertSame('Review', $reviewAction->getLabel());
+        $this->assertSame(Heroicon::Cog6Tooth, $reviewAction->getIcon());
+        $this->assertTrue($reviewAction->isModalSlideOver());
+
+        $component->callTableAction('review', $prospect)->assertOk();
     }
 
     #[Test]
@@ -146,7 +247,7 @@ class ProspectResourceTest extends TestCase
         $prospect = Prospect::factory()->draftReady()->create();
 
         Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
+            ->callTableAction('review', $prospect)
             ->assertOk();
     }
 
@@ -159,7 +260,7 @@ class ProspectResourceTest extends TestCase
         ]);
 
         Livewire::test(ManageProspects::class)
-            ->callTableAction(ViewAction::class, $prospect)
+            ->callTableAction('review', $prospect)
             ->assertSee('Drafting reply')
             ->assertSeeHtml('animation: dwc-status-spin');
     }
