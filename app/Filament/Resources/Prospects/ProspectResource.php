@@ -128,10 +128,9 @@ class ProspectResource extends Resource
                     ->icon(Heroicon::Cog6Tooth)
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
-                ViewAction::make('view')->slideOver(),
                 DeleteAction::make(),
             ])
-            ->recordActionsPosition(RecordActionsPosition::AfterColumns);
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
 
     private static function applyDefaultTableSort(Builder $query): Builder

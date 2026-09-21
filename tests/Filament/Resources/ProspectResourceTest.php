@@ -109,22 +109,21 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_places_the_review_view_and_delete_actions_after_the_data_columns(): void
+    public function it_places_the_review_and_delete_actions_before_the_data_columns(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
         $component = Livewire::test(ManageProspects::class);
 
         $this->assertSame(
-            RecordActionsPosition::AfterColumns,
+            RecordActionsPosition::BeforeColumns,
             $component->instance()->getTable()->getRecordActionsPosition(),
         );
 
         $actions = $component->instance()->getTable()->getFlatRecordActions();
 
-        $this->assertSame(['review', 'view', 'delete'], array_keys($actions));
+        $this->assertSame(['review', 'delete'], array_keys($actions));
         $this->assertInstanceOf(ViewAction::class, $actions['review']);
-        $this->assertInstanceOf(ViewAction::class, $actions['view']);
         $this->assertInstanceOf(DeleteAction::class, $actions['delete']);
         $this->assertSame('Review', $actions['review']->getLabel());
     }
