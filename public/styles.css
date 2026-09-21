@@ -358,9 +358,12 @@ a {
    comment), so an in-page anchor jump — nav links, "Get a Quote" CTAs —
    lands with the target's true top hidden under it unless compensated.
    Scoped to sections with an id, since those are exactly the ones used as
-   scroll targets (about/events/film-tv/services/gallery/contact). */
+   scroll targets (about/events/film-tv/services/gallery/contact). Also
+   applied to .faq-item so an opened accordion question snaps to the same
+   offset below the header instead of tucking under it. */
 .section[id],
-.scroll-target {
+.scroll-target,
+.faq-item {
   scroll-margin-top: 7rem;
 }
 
