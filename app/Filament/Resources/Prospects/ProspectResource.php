@@ -12,6 +12,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -162,6 +163,7 @@ class ProspectResource extends Resource
                 ->visible(fn (Prospect $record): bool => in_array($record->status, [ProspectStatus::DraftReady, ProspectStatus::Replied], true))
                 ->schema([
                     Section::make('AI Draft')
+                        ->visible(fn (Prospect $record): bool => ! self::hasEditedReply($record))
                         ->description('Generated automatically. Read-only — edit the reply below instead of this.')
                         ->afterHeader([
                             Action::make('regenerateDraft')
@@ -173,41 +175,29 @@ class ProspectResource extends Resource
                         ->schema([
                             TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
                             TextEntry::make('generation_reason')->label('Why the AI drafted it this way')->columnSpanFull(),
+                            Actions::make([
+                                self::editReplyAction('editDraftReply'),
+                                self::approveAndSendAction('approveDraftAndSend'),
+                            ])->alignEnd(),
+                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
                         ]),
 
-                    Section::make('Reply to Send')
-                        ->description(fn (Prospect $record): string => $record->status === ProspectStatus::Replied
-                            ? 'This is the text that was actually sent to the prospect.'
-                            : 'Starts as a copy of the AI draft above. Edit and save, or approve to send as-is.')
-                        ->afterHeader([
-                            ActionGroup::make([
-                                Action::make('editReply')
-                                    ->label('Edit Reply')
-                                    ->icon(Heroicon::PencilSquare)
-                                    ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
-                                    ->schema([
-                                        Textarea::make('final_reply')->label('Reply text')->required()->rows(10),
-                                    ])
-                                    ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-                                    ->action(fn (array $data, Prospect $record) => $record->update(['final_reply' => $data['final_reply']])),
-                                Action::make('approveAndSend')
-                                    ->label('Approve & Send')
-                                    ->icon(Heroicon::PaperAirplane)
-                                    ->color('success')
-                                    ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
-                                    ->schema([
-                                        Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
-                                    ])
-                                    ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-                                    ->action(function (array $data, Prospect $record): void {
-                                        $record->update(['final_reply' => $data['final_reply']]);
-                                        $record->markStatus(ProspectStatus::Replied, auth()->id());
-                                    }),
-                            ])->label('Reply actions')->icon(Heroicon::ChevronDown)->button(),
-                        ])
+                    Section::make('Edited Reply')
+                        ->visible(fn (Prospect $record): bool => self::hasEditedReply($record))
                         ->schema([
-                            TextEntry::make('final_reply')->hiddenLabel()->placeholder('(not yet edited — starts from the AI draft above)')->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->placeholder('(not sent yet)'),
+                            TextEntry::make('final_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
+                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
+                            Actions::make([
+                                self::editReplyAction('editEditedReply'),
+                                self::approveAndSendAction('approveEditedAndSend'),
+                            ])->alignEnd(),
+                            Section::make('AI Draft')
+                                ->collapsible()
+                                ->collapsed()
+                                ->schema([
+                                    TextEntry::make('generated_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
+                                    TextEntry::make('generation_reason')->label('Why the AI drafted it this way')->columnSpanFull(),
+                                ]),
                         ]),
                 ]),
         ]);
@@ -226,6 +216,45 @@ class ProspectResource extends Resource
         }
 
         return empty($state) ? '' : implode(', ', $state);
+    }
+
+    private static function hasEditedReply(Prospect $record): bool
+    {
+        return filled($record->final_reply) && $record->final_reply !== $record->generated_reply;
+    }
+
+    private static function editReplyAction(string $name): Action
+    {
+        return Action::make($name)
+            ->label('Edit reply')
+            ->icon(Heroicon::PencilSquare)
+            ->button()
+            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
+            ->modalHeading('Edit reply')
+            ->modalSubmitActionLabel('Save reply')
+            ->schema([
+                Textarea::make('final_reply')->label('Reply text')->required()->rows(10),
+            ])
+            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
+            ->action(fn (array $data, Prospect $record) => $record->update(['final_reply' => $data['final_reply']]));
+    }
+
+    private static function approveAndSendAction(string $name): Action
+    {
+        return Action::make($name)
+            ->label('Approve & Send')
+            ->icon(Heroicon::PaperAirplane)
+            ->color('success')
+            ->button()
+            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
+            ->schema([
+                Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
+            ])
+            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
+            ->action(function (array $data, Prospect $record): void {
+                $record->update(['final_reply' => $data['final_reply']]);
+                $record->markStatus(ProspectStatus::Replied, auth()->id());
+            });
     }
 
     public static function getPages(): array
