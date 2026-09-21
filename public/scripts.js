@@ -396,6 +396,12 @@
     answer.addEventListener('transitionend', onEnd, { once: true });
   }
 
+  // Scroll token below: incremented on every open click, so a deferred
+  // scroll from a rapid earlier click can tell it's no longer current and
+  // skip instead of yanking the page back to a question the user has
+  // already moved on from.
+  let scrollToken = 0;
+
   items.forEach(function (item) {
     const summary = item.querySelector('summary');
 
@@ -409,11 +415,36 @@
 
       // Only one answer open at a time: close any other item that's
       // currently open before opening this one.
+      const others = [];
       items.forEach(function (other) {
-        if (other !== item && other.open) closeItem(other);
+        if (other !== item && other.open) {
+          others.push(other);
+          closeItem(other);
+        }
       });
 
       openItem(item);
+
+      // Agency-style FAQ snap: the opened question scrolls to the top of
+      // the viewport so its answer reads right below the header, rather
+      // than the accordion just growing wherever the click happened to
+      // land. If another item is closing at the same time, its shrinking
+      // height pulls this item upward over that same span, so scrolling
+      // immediately would target a now-stale position -- and running a
+      // second corrective scroll afterward doesn't work either, since it
+      // fires while the first (already wrong) smooth scroll is still
+      // animating toward its stale target and gets dragged along with it.
+      // Waiting for any closing item(s) to finish first and scrolling
+      // exactly once, against the settled layout, avoids the race outright.
+      const thisToken = ++scrollToken;
+      Promise.all(others.map(function (other) {
+        return new Promise(function (resolve) {
+          other.querySelector('.faq-answer').addEventListener('transitionend', resolve, { once: true });
+        });
+      })).then(function () {
+        if (thisToken !== scrollToken) return;
+        item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   });
 })();
