@@ -128,7 +128,7 @@ class ProspectResource extends Resource
                     ->icon(Heroicon::Cog6Tooth)
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
-                DeleteAction::make(),
+                DeleteAction::make()->iconButton(),
             ])
             ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
