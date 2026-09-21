@@ -460,8 +460,12 @@ a {
   font-size: clamp(2.2rem, 5vw, 4rem);
 }
 
+/* Homepage hero overrides this with its own font-family and size (see
+   .gradient-masthead .display-title, higher specificity via two classes),
+   so this is effectively the subpage hero title size only. Sized down
+   ~15% per client feedback that it read too large. */
 .display-title {
-  font-size: clamp(3rem, 8vw, 6.5rem);
+  font-size: clamp(2.6rem, 6.8vw, 5.5rem);
 }
 
 .lede,
