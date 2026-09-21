@@ -38,6 +38,13 @@ class ProspectResource extends Resource
     {
         return $table
             ->defaultSort('submitted_at', 'desc')
+            ->modifyQueryUsing(fn ($query) => $query->where(function ($query): void {
+                $query
+                    ->whereNull('classification')
+                    ->orWhere('classification', '!=', 'spam')
+                    ->orWhereNull('human_classification')
+                    ->orWhere('human_classification', '!=', 'spam');
+            }))
             ->columns([
                 TextColumn::make('name')
                     ->limit(50)
