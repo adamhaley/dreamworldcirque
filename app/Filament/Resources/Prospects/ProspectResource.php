@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Prospects;
 
+use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Models\Prospect;
@@ -16,10 +17,12 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
@@ -38,15 +41,50 @@ class ProspectResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('submitted_at', 'desc')
-            ->modifyQueryUsing(fn ($query) => $query->where(function ($query): void {
-                $query
-                    ->whereNull('classification')
-                    ->orWhere('classification', '!=', 'spam')
-                    ->orWhereNull('human_classification')
-                    ->orWhere('human_classification', '!=', 'spam');
-            }))
+            ->defaultSort(fn (Builder $query): Builder => self::applyDefaultTableSort($query))
+            ->modifyQueryUsing(fn ($query) => $query
+                ->where(function ($query): void {
+                    $query
+                        ->whereNull('classification')
+                        ->orWhere('classification', '!=', ProspectClassification::Spam->value);
+                })
+                ->where(function ($query): void {
+                    $query
+                        ->whereNull('human_classification')
+                        ->orWhere('human_classification', '!=', ProspectClassification::Spam->value);
+                }))
             ->columns([
+                IconColumn::make('review_indicator')
+                    ->label('')
+                    ->state(fn (Prospect $record): string => match ($record->status) {
+                        ProspectStatus::PendingReview => 'ready_for_review',
+                        ProspectStatus::DraftReady => 'answer_review_pending',
+                        ProspectStatus::Replied => 'message_sent',
+                        ProspectStatus::Spam, ProspectStatus::Unanswerable => 'no_action_needed',
+                        ProspectStatus::PendingClassification => 'classifying',
+                        ProspectStatus::Valid, ProspectStatus::DraftGenerating => 'drafting',
+                    })
+                    ->icon(fn (string $state): BackedEnum|HtmlString => match ($state) {
+                        'ready_for_review' => Heroicon::Clock,
+                        'answer_review_pending' => Heroicon::EnvelopeOpen,
+                        'message_sent' => Heroicon::Envelope,
+                        'no_action_needed' => Heroicon::EnvelopeOpen,
+                        'classifying', 'drafting' => self::spinningStatusIcon(),
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'ready_for_review', 'answer_review_pending' => 'warning',
+                        'classifying', 'drafting' => 'info',
+                        'message_sent' => 'success',
+                        'no_action_needed' => 'gray',
+                    })
+                    ->tooltip(fn (string $state): string => match ($state) {
+                        'ready_for_review' => 'Ready for review',
+                        'answer_review_pending' => 'Answer review pending',
+                        'message_sent' => 'Message sent',
+                        'no_action_needed' => 'No action needed',
+                        'classifying' => 'Classifying prospect',
+                        'drafting' => 'Drafting reply',
+                    }),
                 TextColumn::make('name')
                     ->limit(50)
                     ->tooltip(fn (Prospect $record): ?string => mb_strlen($record->name ?? '') > 50 ? $record->name : null)
@@ -62,8 +100,7 @@ class ProspectResource extends Resource
                     ->placeholder('Pending'),
                 TextColumn::make('status')
                     ->label('Pipeline status')
-                    ->badge()
-                    ->icon(fn (Prospect $record): Heroicon|HtmlString|null => $record->status->isActive() ? self::spinningStatusIcon() : null),
+                    ->badge(),
                 TextColumn::make('form_type')->badge()->color('gray'),
                 TextColumn::make('submitted_at')->dateTime()->sortable(),
             ])
@@ -85,9 +122,24 @@ class ProspectResource extends Resource
             ->persistFiltersInSession()
             ->deferFilters(false)
             ->recordActions([
-                ViewAction::make()->slideOver(),
+                ViewAction::make()
+                    ->label('Review')
+                    ->icon(Heroicon::Cog6Tooth)
+                    ->modalCancelActionLabel('Close')
+                    ->slideOver(),
             ])
             ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
+    }
+
+    private static function applyDefaultTableSort(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('case when prospects.status = ? then 0 when prospects.status = ? then 1 else 2 end', [
+                ProspectStatus::DraftReady->value,
+                ProspectStatus::PendingReview->value,
+            ])
+            ->orderByDesc('prospects.submitted_at')
+            ->orderByDesc('prospects.id');
     }
 
     public static function infolist(Schema $schema): Schema
