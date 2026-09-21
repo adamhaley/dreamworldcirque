@@ -72,6 +72,16 @@ class ProspectSeederTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_to_import_a_row_with_a_blank_date(): void
+    {
+        $this->writeFixtureCsvWithBlankDate();
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->seed(ProspectSeeder::class);
+    }
+
+    #[Test]
     public function it_bounds_legacy_scalar_fields_to_database_column_lengths(): void
     {
         $this->writeFixtureCsv(str_repeat('x', 300));
@@ -107,6 +117,33 @@ class ProspectSeederTest extends TestCase
                 '',
                 'example.com',
                 'Name: John Prospect; Email: john@example.com; Custom: 5551234567; Custom (2): Interested in a wedding performance.; Wedding: Checked; Birthday Party: Unchecked',
+                '1',
+                'no',
+            ],
+        ];
+
+        $handle = fopen($path, 'w');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+        fclose($handle);
+    }
+
+    private function writeFixtureCsvWithBlankDate(): void
+    {
+        $path = base_path(self::CSV_PATH);
+        @mkdir(dirname($path), recursive: true);
+
+        $rows = [
+            ['date', 'form_type', 'name', 'email', 'message', 'website', 'all_fields', 'submission_count', 'likely_spam'],
+            [
+                '',
+                'Get_A_Quote Form Submission',
+                'Jane Spammer',
+                'spam@example.com',
+                '',
+                'example.com',
+                'Name: Jane Spammer; Email: spam@example.com; Wedding: Unchecked',
                 '1',
                 'no',
             ],
