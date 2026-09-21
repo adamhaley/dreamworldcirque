@@ -31,7 +31,7 @@ class SpotlightResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Homepage';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEye;
 
     protected static ?string $navigationLabel = 'Spotlight sections';
 

@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -128,10 +129,8 @@ class ProspectResource extends Resource
                     ->icon(Heroicon::Cog6Tooth)
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
-                ViewAction::make('view')->slideOver(),
-                DeleteAction::make(),
             ])
-            ->recordActionsPosition(RecordActionsPosition::AfterColumns);
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
 
     private static function applyDefaultTableSort(Builder $query): Builder
@@ -186,6 +185,9 @@ class ProspectResource extends Resource
                         ->label('Classify')
                         ->icon(Heroicon::ChevronDown)
                         ->button(),
+                    DeleteAction::make()
+                        ->color(Color::hex('#a3433f'))
+                        ->cancelParentActions(),
                 ])
                 ->schema([
                     TextEntry::make('status')

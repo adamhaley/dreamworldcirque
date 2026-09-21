@@ -48,6 +48,10 @@ class ProspectSeeder extends Seeder
         $fields = $this->parseAllFields($record['all_fields'] ?? '');
         $isSpam = strtolower(trim($record['likely_spam'] ?? '')) === 'yes';
 
+        if (blank($record['date'] ?? null)) {
+            throw new \RuntimeException("Legacy lead row {$externalId} is missing a date; refusing to import with a fabricated submitted_at.");
+        }
+
         Prospect::create([
             'source' => 'legacy_contact_form',
             'source_external_id' => (string) $externalId,
