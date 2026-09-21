@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -128,7 +129,6 @@ class ProspectResource extends Resource
                     ->icon(Heroicon::Cog6Tooth)
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
-                DeleteAction::make()->iconButton(),
             ])
             ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
@@ -185,6 +185,9 @@ class ProspectResource extends Resource
                         ->label('Classify')
                         ->icon(Heroicon::ChevronDown)
                         ->button(),
+                    DeleteAction::make()
+                        ->color(Color::hex('#a3433f'))
+                        ->cancelParentActions(),
                 ])
                 ->schema([
                     TextEntry::make('status')

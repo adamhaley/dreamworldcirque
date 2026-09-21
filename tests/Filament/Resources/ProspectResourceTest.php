@@ -8,7 +8,6 @@ use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
 use App\Models\User;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Enums\RecordActionsPosition;
@@ -109,7 +108,7 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_places_the_review_and_delete_actions_before_the_data_columns(): void
+    public function it_places_the_review_action_before_the_data_columns(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
@@ -122,9 +121,8 @@ class ProspectResourceTest extends TestCase
 
         $actions = $component->instance()->getTable()->getFlatRecordActions();
 
-        $this->assertSame(['review', 'delete'], array_keys($actions));
+        $this->assertSame(['review'], array_keys($actions));
         $this->assertInstanceOf(ViewAction::class, $actions['review']);
-        $this->assertInstanceOf(DeleteAction::class, $actions['delete']);
         $this->assertSame('Review', $actions['review']->getLabel());
     }
 
