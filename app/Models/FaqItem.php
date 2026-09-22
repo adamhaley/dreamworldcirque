@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['question', 'answer', 'sort_order'])]
+#[Fillable(['question', 'answer', 'keywords', 'sort_order'])]
 class FaqItem extends Model
 {
     /** @use HasFactory<FaqItemFactory> */

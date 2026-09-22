@@ -9,6 +9,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -38,6 +39,10 @@ class FaqItemResource extends Resource
             RichEditor::make('answer')
                 ->required()
                 ->toolbarButtons([['bold', 'italic', 'link'], ['bulletList', 'orderedList'], ['undo', 'redo']]),
+            TagsInput::make('keywords')
+                ->separator(',')
+                ->label('Chatbot keywords')
+                ->helperText('Words a visitor might type instead of your wording — e.g. price, budget, how much. These weigh heavily when the chatbot picks an answer.'),
         ]);
     }
 
