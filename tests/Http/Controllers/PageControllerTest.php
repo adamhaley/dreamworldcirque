@@ -48,7 +48,11 @@ class PageControllerTest extends TestCase
 
         $response = $this->get('/');
 
-        $response->assertOk()->assertSee('Absolutely magical')->assertSee('Silks at sunset');
+        $response
+            ->assertOk()
+            ->assertSee('Absolutely magical')
+            ->assertSee('Silks at sunset')
+            ->assertSee('<a class="carousel-slide-link" href="/gallery/" aria-label="View full gallery">', escape: false);
     }
 
     #[Test]
@@ -62,6 +66,22 @@ class PageControllerTest extends TestCase
         $response = $this->get('/services/aerial/');
 
         $response->assertOk()->assertSee('Aerial acts');
+    }
+
+    #[Test]
+    public function it_renders_a_history_back_link_with_the_parent_page_as_a_fallback(): void
+    {
+        $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
+        Page::factory()->template(PageTemplate::Service)->create([
+            'parent_id' => $services->id, 'slug' => 'aerial',
+        ]);
+
+        $response = $this->get('/services/aerial/');
+
+        $response->assertSee(
+            '<a class="hero-back-link" href="/services/" aria-label="Back to previous page" data-history-back>',
+            escape: false,
+        );
     }
 
     #[Test]

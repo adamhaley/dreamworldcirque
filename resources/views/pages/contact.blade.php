@@ -17,6 +17,7 @@
       <x-contact-grid :settings="$settings">
         <x-contact-card kicker="Services" href="/services/">Browse what we offer</x-contact-card>
       </x-contact-grid>
+      <x-contact-form form-type="Get_A_Quote Form Submission" />
     </div>
   </section>
 </x-layouts.site>

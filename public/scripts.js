@@ -66,6 +66,20 @@
   });
 })();
 
+// Use the visitor's actual route into the page for masthead back links. The
+// href remains a useful parent/home fallback for direct visits and for opening
+// the link in a new tab.
+(function () {
+  document.addEventListener('click', function (event) {
+    const link = event.target.closest('[data-history-back]');
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (window.history.length <= 1) return;
+
+    event.preventDefault();
+    window.history.back();
+  });
+})();
+
 (function () {
   const grids = document.querySelectorAll('[data-thumbnail-gallery]');
   if (!grids.length) return;
@@ -75,17 +89,89 @@
     if (!modal || typeof modal.showModal !== 'function') return;
 
     const items = Array.from(grid.querySelectorAll('[data-gallery-index]'));
-    const imgEl = modal.querySelector('[data-gallery-modal-img]');
-    const captionEl = modal.querySelector('[data-gallery-modal-caption]');
+    const figureEl = modal.querySelector('.gallery-modal-figure');
+    const stageEl = modal.querySelector('.gallery-modal-stage');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let activeIndex = 0;
+    let isAnimating = false;
 
-    function show(index) {
-      activeIndex = (index + items.length) % items.length;
-      const item = items[activeIndex];
+    function normalizedIndex(index) {
+      return (index + items.length) % items.length;
+    }
+
+    function populateFigure(figure, index) {
+      const item = items[index];
       const img = item.querySelector('img');
-      imgEl.src = img.getAttribute('src');
-      imgEl.alt = img.getAttribute('alt') || '';
-      captionEl.textContent = item.dataset.caption || '';
+      const figureImg = figure.querySelector('img');
+      const figureCaption = figure.querySelector('figcaption');
+      figureImg.src = img.getAttribute('src');
+      figureImg.alt = img.getAttribute('alt') || '';
+      figureCaption.textContent = item.dataset.caption || '';
+    }
+
+    function updateImage(index) {
+      activeIndex = normalizedIndex(index);
+      populateFigure(figureEl, activeIndex);
+    }
+
+    function preloadImage(index) {
+      const source = items[index].querySelector('img').getAttribute('src');
+
+      return new Promise(function (resolve) {
+        const image = new Image();
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+        image.src = source;
+
+        if (image.complete) {
+          if (typeof image.decode === 'function') {
+            image.decode().catch(function () {}).finally(resolve);
+          } else {
+            resolve();
+          }
+        }
+      });
+    }
+
+    function show(index, direction) {
+      if (!direction || reduceMotion || typeof figureEl.animate !== 'function') {
+        updateImage(index);
+        return;
+      }
+
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const targetIndex = normalizedIndex(index);
+      const directionMultiplier = direction === 'next' ? 1 : -1;
+
+      preloadImage(targetIndex).then(function () {
+        if (!modal.open) return;
+
+        const incomingFigure = figureEl.cloneNode(true);
+        populateFigure(incomingFigure, targetIndex);
+        stageEl.appendChild(incomingFigure);
+
+        const timing = { duration: 420, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' };
+
+        const outgoingAnimation = figureEl.animate([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(' + (-100 * directionMultiplier) + 'vw)' },
+        ], timing);
+
+        const incomingAnimation = incomingFigure.animate([
+          { transform: 'translateX(' + (100 * directionMultiplier) + 'vw)' },
+          { transform: 'translateX(0)' },
+        ], timing);
+
+        return Promise.all([outgoingAnimation.finished, incomingAnimation.finished]).then(function () {
+          updateImage(targetIndex);
+          outgoingAnimation.cancel();
+          incomingFigure.remove();
+        });
+      }).finally(function () {
+        isAnimating = false;
+      });
     }
 
     items.forEach(function (item, index) {
@@ -105,14 +191,14 @@
     const prevButton = modal.querySelector('[data-gallery-prev]');
     if (prevButton) {
       prevButton.addEventListener('click', function () {
-        show(activeIndex - 1);
+        show(activeIndex - 1, 'previous');
       });
     }
 
     const nextButton = modal.querySelector('[data-gallery-next]');
     if (nextButton) {
       nextButton.addEventListener('click', function () {
-        show(activeIndex + 1);
+        show(activeIndex + 1, 'next');
       });
     }
 
@@ -123,8 +209,8 @@
     });
 
     modal.addEventListener('keydown', function (event) {
-      if (event.key === 'ArrowRight') show(activeIndex + 1);
-      if (event.key === 'ArrowLeft') show(activeIndex - 1);
+      if (event.key === 'ArrowRight') show(activeIndex + 1, 'next');
+      if (event.key === 'ArrowLeft') show(activeIndex - 1, 'previous');
     });
   });
 })();
@@ -315,25 +401,210 @@
   const messages = root.querySelector('.chat-messages');
   const closeButton = root.querySelector('.chat-close-button');
   const reopenButton = root.querySelector('.chat-reopen-button');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
 
-  function addMessage(message, isUser) {
+  const STARTER_CHIPS = [
+    'How much does it cost?',
+    'Do you travel outside LA and Vegas?',
+    'How far in advance should we book?',
+    'Do you provide insurance?',
+  ];
+
+  let hasOpenedBefore = false;
+  let isBusy = false;
+
+  function addMessage(content, isUser, isHtml) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message ' + (isUser ? 'chat-user-message' : 'chat-bot-message');
-    messageDiv.textContent = message;
+    messageDiv.className = 'chat-message ' + (isUser ? 'chat-user-message' : 'chat-bot-message chat-answer');
+
+    if (isHtml) {
+      // FAQ answers are trusted, admin-authored RichEditor HTML -- the same
+      // trust level the FAQ page itself renders with {!! $item->answer !!}.
+      messageDiv.innerHTML = content;
+    } else {
+      messageDiv.textContent = content;
+    }
+
     messages.appendChild(messageDiv);
+    messages.scrollTop = messages.scrollHeight;
+
+    return messageDiv;
+  }
+
+  function addTypingIndicator() {
+    const indicator = document.createElement('div');
+    indicator.className = 'chat-message chat-bot-message chat-typing';
+    indicator.innerHTML = '<span></span><span></span><span></span>';
+    messages.appendChild(indicator);
+    messages.scrollTop = messages.scrollHeight;
+
+    return indicator;
+  }
+
+  function setBusy(busy) {
+    isBusy = busy;
+    input.disabled = busy;
+    sendButton.disabled = busy;
+  }
+
+  function renderChips() {
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'chat-chips';
+
+    STARTER_CHIPS.forEach(function (question) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chat-chip';
+      chip.textContent = question;
+      chip.addEventListener('click', function () {
+        chipsRow.remove();
+        askQuestion(question);
+      });
+      chipsRow.appendChild(chip);
+    });
+
+    messages.appendChild(chipsRow);
     messages.scrollTop = messages.scrollHeight;
   }
 
+  function renderOptions(optionsBlock, matches) {
+    matches.forEach(function (match) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chat-option';
+      button.textContent = match.question;
+      button.addEventListener('click', function () {
+        addMessage(match.question, true);
+        optionsBlock.remove();
+        addMessage(match.answer, false, true);
+      });
+      optionsBlock.appendChild(button);
+    });
+  }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function renderLeadForm(question) {
+    const form = document.createElement('form');
+    form.className = 'chat-lead-form';
+    form.innerHTML =
+      '<input type="text" class="chat-lead-field" name="name" placeholder="Your name" required />' +
+      '<input type="email" class="chat-lead-field" name="email" placeholder="Your email" required />' +
+      // Hidden from real visitors via CSS (see .chat-lead-form input[name="website"]
+      // in styles.css) -- a bot filling every field it sees will fill this
+      // one too, which is exactly what marks it as a bot server-side.
+      '<input type="text" class="chat-lead-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />' +
+      '<button type="submit" class="chat-lead-submit">Send to the team</button>' +
+      '<p class="chat-field-error" hidden></p>';
+
+    const errorEl = form.querySelector('.chat-field-error');
+    const submitButton = form.querySelector('.chat-lead-submit');
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      errorEl.hidden = true;
+      submitButton.disabled = true;
+
+      postJson('/chat/lead', {
+        name: form.name.value,
+        email: form.email.value,
+        question: question,
+        website: form.website.value,
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            const firstError = result.data.errors && Object.values(result.data.errors)[0];
+            errorEl.textContent = (firstError && firstError[0]) || 'Something went wrong — please try again.';
+            errorEl.hidden = false;
+            submitButton.disabled = false;
+            return;
+          }
+
+          form.remove();
+          addMessage(result.data.message, false);
+        })
+        .catch(function () {
+          errorEl.textContent = 'Something went wrong — please try again.';
+          errorEl.hidden = false;
+          submitButton.disabled = false;
+        });
+    });
+
+    messages.appendChild(form);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function renderFallback(question) {
+    addMessage("I don't have an answer for that one — but I can pass it along to the team:", false);
+    renderLeadForm(question);
+  }
+
+  function handleResponse(question, data) {
+    if (data.outcome === 'confident' && data.matches.length > 0) {
+      addMessage(data.matches[0].answer, false, true);
+      return;
+    }
+
+    if (data.outcome === 'ambiguous' && data.matches.length > 0) {
+      const optionsBlock = document.createElement('div');
+      optionsBlock.className = 'chat-options';
+      addMessage("I'm not totally sure — did you mean:", false);
+      messages.appendChild(optionsBlock);
+      renderOptions(optionsBlock, data.matches);
+      messages.scrollTop = messages.scrollHeight;
+      return;
+    }
+
+    renderFallback(question);
+  }
+
+  function askQuestion(question) {
+    if (!question.trim() || isBusy || !csrfToken) return;
+
+    addMessage(question, true);
+    setBusy(true);
+
+    const typingIndicator = addTypingIndicator();
+
+    postJson('/chat/ask', { question: question })
+      .then(function (response) {
+        if (!response.ok) throw new Error('chat request failed');
+        return response.json();
+      })
+      .then(function (data) {
+        typingIndicator.remove();
+        handleResponse(question, data);
+      })
+      .catch(function () {
+        typingIndicator.remove();
+        addMessage("Something went wrong on our end — please try again, or use the contact form below.", false);
+      })
+      .finally(function () {
+        setBusy(false);
+      });
+  }
+
   function sendMessage(message) {
-    if (!message.trim()) return;
+    const question = message.trim();
+    if (!question) return;
 
-    addMessage(message, true);
     input.value = '';
-
-    // No chat backend is wired up yet, so respond with a placeholder.
-    window.setTimeout(function () {
-      addMessage("Thanks for reaching out! Our chat assistant isn't connected yet — please use the contact form and we'll get back to you.", false);
-    }, 400);
+    askQuestion(question);
   }
 
   closeButton.addEventListener('click', function () {
@@ -342,6 +613,12 @@
 
   reopenButton.addEventListener('click', function () {
     root.classList.add('is-open');
+
+    if (!hasOpenedBefore) {
+      hasOpenedBefore = true;
+      addMessage("Hi! Ask me anything about Dream World Cirque, or pick a question below.", false);
+      renderChips();
+    }
   });
 
   sendButton.addEventListener('click', function () {
@@ -459,6 +736,100 @@
         if (thisToken !== scrollToken) return;
         item.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
+    });
+  });
+})();
+
+(function () {
+  const forms = document.querySelectorAll('.contact-form');
+  if (!forms.length) return;
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
+  if (!csrfToken) return;
+
+  forms.forEach(function (form) {
+    const submitButton = form.querySelector('.contact-form-submit');
+    const statusEl = form.querySelector('.contact-form-status');
+    const errorEls = form.querySelectorAll('.contact-form-error');
+
+    function clearErrors() {
+      errorEls.forEach(function (el) {
+        el.hidden = true;
+        el.textContent = '';
+      });
+      statusEl.hidden = true;
+    }
+
+    function showFieldErrors(errors) {
+      Object.keys(errors).forEach(function (field) {
+        const el = form.querySelector('.contact-form-error[data-field="' + field + '"]');
+        if (el) {
+          el.textContent = errors[field][0];
+          el.hidden = false;
+        }
+      });
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearErrors();
+      submitButton.disabled = true;
+
+      const interests = Array.from(form.querySelectorAll('input[name="interests[]"]:checked')).map(function (checkbox) {
+        return checkbox.value;
+      });
+
+      fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+        },
+        body: JSON.stringify({
+          name: form.name.value,
+          email: form.email.value,
+          phone: form.phone.value,
+          message: form.message.value,
+          interests: interests,
+          form_type: form.form_type.value,
+          website: form.website.value,
+        }),
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data };
+          });
+        })
+        .then(function (result) {
+          if (result.status === 422) {
+            showFieldErrors(result.data.errors || {});
+            submitButton.disabled = false;
+            return;
+          }
+
+          if (!result.ok) {
+            statusEl.textContent = 'Something went wrong — please try again.';
+            statusEl.hidden = false;
+            submitButton.disabled = false;
+            return;
+          }
+
+          // Leaves the fields in place (rather than clearing/hiding the
+          // form) so a visitor can see exactly what they sent -- only the
+          // submit button and inputs lock, with the confirmation appended
+          // above them.
+          statusEl.textContent = result.data.message;
+          statusEl.hidden = false;
+          Array.from(form.elements).forEach(function (element) {
+            element.disabled = true;
+          });
+        })
+        .catch(function () {
+          statusEl.textContent = 'Something went wrong — please try again.';
+          statusEl.hidden = false;
+          submitButton.disabled = false;
+        });
     });
   });
 })();

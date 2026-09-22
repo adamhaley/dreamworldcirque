@@ -24,12 +24,18 @@
       <dialog id="gallery-lightbox" class="gallery-modal" data-gallery-modal aria-label="Image viewer">
         <div class="gallery-modal-inner">
           <button class="gallery-modal-close" type="button" data-gallery-close aria-label="Close">&times;</button>
-          <button class="gallery-modal-nav gallery-modal-prev" type="button" data-gallery-prev aria-label="Previous image">&larr;</button>
-          <figure class="gallery-modal-figure">
-            <img data-gallery-modal-img src="" alt="" />
-            <figcaption data-gallery-modal-caption></figcaption>
-          </figure>
-          <button class="gallery-modal-nav gallery-modal-next" type="button" data-gallery-next aria-label="Next image">&rarr;</button>
+          <button class="gallery-modal-nav gallery-modal-prev codette-carousel-control" type="button" data-gallery-prev aria-label="Previous image">
+            <x-icon.forward class="codette-carousel-control-icon codette-carousel-control-icon-prev" />
+          </button>
+          <div class="gallery-modal-stage">
+            <figure class="gallery-modal-figure">
+              <img data-gallery-modal-img src="" alt="" />
+              <figcaption data-gallery-modal-caption></figcaption>
+            </figure>
+          </div>
+          <button class="gallery-modal-nav gallery-modal-next codette-carousel-control" type="button" data-gallery-next aria-label="Next image">
+            <x-icon.forward class="codette-carousel-control-icon" />
+          </button>
         </div>
       </dialog>
     </div>

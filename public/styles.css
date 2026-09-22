@@ -924,6 +924,12 @@ a {
   margin: 0;
 }
 
+.carousel-slide-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
 .carousel-item {
   position: relative;
   display: none;
@@ -1130,7 +1136,16 @@ a {
   padding: clamp(1.5rem, 5vw, 4rem);
 }
 
+.gallery-modal-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 .gallery-modal-figure {
+  grid-area: 1 / 1;
   margin: 0;
   max-width: 100%;
   text-align: center;
@@ -1151,8 +1166,7 @@ a {
   font-size: 0.95rem;
 }
 
-.gallery-modal-close,
-.gallery-modal-nav {
+.gallery-modal-close {
   position: absolute;
   border: 0;
   border-radius: 999px;
@@ -1164,8 +1178,7 @@ a {
   transition: background 160ms ease;
 }
 
-.gallery-modal-close:hover,
-.gallery-modal-nav:hover {
+.gallery-modal-close:hover {
   background: rgba(245, 245, 247, 0.24);
 }
 
@@ -1180,10 +1193,6 @@ a {
 
 .gallery-modal-nav {
   top: 50%;
-  width: 3rem;
-  height: 3rem;
-  font-size: 1.25rem;
-  transform: translateY(-50%);
 }
 
 .gallery-modal-prev {
@@ -1192,13 +1201,6 @@ a {
 
 .gallery-modal-next {
   right: clamp(0.5rem, 2vw, 1.5rem);
-}
-
-@media (max-width: 640px) {
-  .gallery-modal-nav {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
 }
 
 .promo-card {
@@ -1343,6 +1345,105 @@ a {
   font-family: var(--font-heading);
   font-size: 1.3rem;
   text-decoration: none;
+}
+
+.contact-form {
+  margin-top: 1.5rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.contact-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.contact-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.contact-form-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.contact-form-optional {
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.contact-form-input {
+  padding: 0.75rem 1rem;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-page-top, var(--color-surface));
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.contact-form-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.contact-form-textarea {
+  resize: vertical;
+}
+
+.contact-form-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+}
+
+.contact-form-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.contact-form-error {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+}
+
+.contact-form-status {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* Off-screen rather than display:none, for the same reason as the chat
+   widget's honeypot -- see its comment in public/scripts.js. */
+.contact-form-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contact-form-submit {
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .contact-form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sr-only {
@@ -1927,6 +2028,145 @@ a {
 .chat-messages::-webkit-scrollbar-thumb {
   background: var(--color-accent);
   border-radius: 4px;
+}
+
+/* RichEditor answers arrive as full <p> blocks; without this they carry
+   their own default paragraph spacing, which reads as too loose inside an
+   80%-width chat bubble. */
+.chat-answer p {
+  margin: 0 0 0.5em;
+}
+
+.chat-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-answer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 15px;
+}
+
+.chat-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: 0.4;
+  animation: chat-typing-bounce 1s infinite ease-in-out;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chat-typing-bounce {
+  0%, 60%, 100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.chat-chips,
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.chat-chip,
+.chat-option {
+  align-self: flex-start;
+  max-width: 90%;
+  text-align: left;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 15px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.chat-chip:hover,
+.chat-option:hover {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.chat-lead-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  border: 1px solid var(--color-accent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+.chat-lead-field {
+  padding: 8px 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.chat-lead-field:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+/* Off-screen rather than display:none -- a hidden-but-present field is a
+   more reliable honeypot, since some bots specifically skip fields that
+   aren't rendered at all. */
+.chat-lead-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-lead-submit {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 15px;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-lead-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.chat-field-error {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.8rem;
 }
 
 @media (max-width: 480px) {
