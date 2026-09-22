@@ -396,11 +396,76 @@
     });
   }
 
-  // Takes the unanswered question so a later step (lead capture) can offer
-  // to pass it straight to the team instead of asking the visitor to
-  // retype it into the contact form.
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function renderLeadForm(question) {
+    const form = document.createElement('form');
+    form.className = 'chat-lead-form';
+    form.innerHTML =
+      '<input type="text" class="chat-lead-field" name="name" placeholder="Your name" required />' +
+      '<input type="email" class="chat-lead-field" name="email" placeholder="Your email" required />' +
+      // Hidden from real visitors via CSS (see .chat-lead-form input[name="website"]
+      // in styles.css) -- a bot filling every field it sees will fill this
+      // one too, which is exactly what marks it as a bot server-side.
+      '<input type="text" class="chat-lead-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />' +
+      '<button type="submit" class="chat-lead-submit">Send to the team</button>' +
+      '<p class="chat-field-error" hidden></p>';
+
+    const errorEl = form.querySelector('.chat-field-error');
+    const submitButton = form.querySelector('.chat-lead-submit');
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      errorEl.hidden = true;
+      submitButton.disabled = true;
+
+      postJson('/chat/lead', {
+        name: form.name.value,
+        email: form.email.value,
+        question: question,
+        website: form.website.value,
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            const firstError = result.data.errors && Object.values(result.data.errors)[0];
+            errorEl.textContent = (firstError && firstError[0]) || 'Something went wrong — please try again.';
+            errorEl.hidden = false;
+            submitButton.disabled = false;
+            return;
+          }
+
+          form.remove();
+          addMessage(result.data.message, false);
+        })
+        .catch(function () {
+          errorEl.textContent = 'Something went wrong — please try again.';
+          errorEl.hidden = false;
+          submitButton.disabled = false;
+        });
+    });
+
+    messages.appendChild(form);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
   function renderFallback(question) {
-    addMessage("I don't have an answer for that one — please use the contact form below and we'll get back to you personally.", false);
+    addMessage("I don't have an answer for that one — but I can pass it along to the team:", false);
+    renderLeadForm(question);
   }
 
   function handleResponse(question, data) {
@@ -430,15 +495,7 @@
 
     const typingIndicator = addTypingIndicator();
 
-    fetch('/chat/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
-      },
-      body: JSON.stringify({ question: question }),
-    })
+    postJson('/chat/ask', { question: question })
       .then(function (response) {
         if (!response.ok) throw new Error('chat request failed');
         return response.json();
