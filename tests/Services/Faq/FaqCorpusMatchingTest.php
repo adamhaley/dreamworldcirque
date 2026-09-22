@@ -51,6 +51,8 @@ class FaqCorpusMatchingTest extends TestCase
 
     public static function phrasingProvider(): Generator
     {
+        yield 'travel typo' => ['do you travle to phoenix', 'Do you travel outside Los Angeles and Las Vegas?'];
+        yield 'aerial typo' => ['how much ceiling height for aerail', 'How much space and ceiling height do you need for aerial performances?'];
         yield 'pricing casual' => ['whats your pricing', 'How much does Cirque entertainment cost?'];
         yield 'pricing ballpark' => ['ballpark budget?', 'How much does Cirque entertainment cost?'];
         yield 'weddings' => ['do you do weddings', 'What kinds of events does Dream World Cirque perform at?'];

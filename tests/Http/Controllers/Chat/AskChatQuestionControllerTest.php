@@ -7,12 +7,49 @@ use App\Http\Controllers\Chat\AskChatQuestionController;
 use App\Models\ChatQuery;
 use App\Models\FaqItem;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 #[CoversClass(AskChatQuestionController::class)]
 class AskChatQuestionControllerTest extends TestCase
 {
+    #[Test]
+    #[DataProvider('smallTalk')]
+    public function it_replies_to_small_talk_without_logging_a_faq_attempt(string $question, string $outcome): void
+    {
+        $this->postJson('/chat/ask', ['question' => $question])
+            ->assertOk()->assertJsonPath('outcome', $outcome)
+            ->assertJsonPath('matches', [])->assertJsonStructure(['reply']);
+
+        $this->assertDatabaseCount('chat_queries', 0);
+        $this->assertDatabaseCount('prospects', 0);
+    }
+
+    public static function smallTalk(): array
+    {
+        return [['Hello!', 'greeting'], ['Thank you!', 'farewell']];
+    }
+
+    #[Test]
+    public function it_matches_a_typo_in_a_question_with_a_greeting_and_logs_the_original_input(): void
+    {
+        $faq = FaqItem::factory()->create([
+            'question' => 'Do you provide aerial performances?',
+            'answer' => '<p>Yes, we provide aerial performances.</p>',
+            'keywords' => 'aerial',
+        ]);
+
+        $this->postJson('/chat/ask', ['question' => 'Hi, aerail?'])
+            ->assertOk()->assertJsonPath('outcome', 'confident')
+            ->assertJsonPath('matches.0.id', $faq->id);
+
+        $this->assertDatabaseHas('chat_queries', [
+            'question' => 'Hi, aerail?',
+            'matched_faq_id' => $faq->id,
+        ]);
+    }
+
     #[Test]
     public function it_returns_the_matched_faq_answer(): void
     {

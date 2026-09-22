@@ -51,7 +51,7 @@ class FaqMatchingService
     /** @var array{docs: array<int, array<string, float>>, idf: array<string, float>, items: array<int, FaqItem>}|null */
     private ?array $index = null;
 
-    public function __construct(private FaqTokenizer $tokenizer) {}
+    public function __construct(private FaqTokenizer $tokenizer, private FaqTypoCorrector $typoCorrector) {}
 
     public function match(string $question): FaqMatchResult
     {
@@ -61,7 +61,10 @@ class FaqMatchingService
             return FaqMatchResult::noMatch();
         }
 
-        $queryTokens = $this->tokenizer->tokenize($question);
+        $queryTokens = $this->typoCorrector->correct(
+            $this->tokenizer->tokenize($question),
+            array_keys($index['idf']),
+        );
 
         if ($queryTokens === []) {
             return FaqMatchResult::noMatch();
