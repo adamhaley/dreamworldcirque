@@ -66,6 +66,20 @@
   });
 })();
 
+// Use the visitor's actual route into the page for masthead back links. The
+// href remains a useful parent/home fallback for direct visits and for opening
+// the link in a new tab.
+(function () {
+  document.addEventListener('click', function (event) {
+    const link = event.target.closest('[data-history-back]');
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (window.history.length <= 1) return;
+
+    event.preventDefault();
+    window.history.back();
+  });
+})();
+
 (function () {
   const grids = document.querySelectorAll('[data-thumbnail-gallery]');
   if (!grids.length) return;

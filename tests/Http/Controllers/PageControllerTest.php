@@ -65,6 +65,22 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_renders_a_history_back_link_with_the_parent_page_as_a_fallback(): void
+    {
+        $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
+        Page::factory()->template(PageTemplate::Service)->create([
+            'parent_id' => $services->id, 'slug' => 'aerial',
+        ]);
+
+        $response = $this->get('/services/aerial/');
+
+        $response->assertSee(
+            '<a class="hero-back-link" href="/services/" aria-label="Back to previous page" data-history-back>',
+            escape: false,
+        );
+    }
+
+    #[Test]
     public function it_lists_published_children_on_the_services_index(): void
     {
         $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);

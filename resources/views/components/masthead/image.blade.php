@@ -9,6 +9,6 @@
     @if ($page->hero_subheading)
     <p class="masthead-subheading">{{ $page->hero_subheading }}</p>
     @endif
-    <div class="button-row"><a class="hero-back-link" href="{{ $page->parent?->url() ?? '/' }}" aria-label="Back to {{ $page->parent?->title ?? 'Home' }}"><x-icon.back /></a><x-button :href="$buttonHref">{{ $buttonLabel }}</x-button></div>
+    <div class="button-row"><a class="hero-back-link" href="{{ $page->parent?->url() ?? '/' }}" aria-label="Back to previous page" data-history-back><x-icon.back /></a><x-button :href="$buttonHref">{{ $buttonLabel }}</x-button></div>
   </div>
 </header>
