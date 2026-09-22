@@ -46,6 +46,47 @@ class ProspectDashboardMetricsTest extends TestCase
     }
 
     #[Test]
+    public function it_excludes_needs_human_classifications_from_the_alignment_rate(): void
+    {
+        Carbon::setTestNow('2026-09-20 12:00:00');
+
+        Prospect::factory()->count(2)->create([
+            'classification' => ProspectClassification::Valid,
+            'human_classification' => ProspectClassification::Valid,
+            'reviewed_at' => now(),
+        ]);
+        Prospect::factory()->count(5)->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => ProspectClassification::Spam,
+            'reviewed_at' => now(),
+        ]);
+
+        $metrics = app(ProspectDashboardMetrics::class)->dailyAlignmentRates(30);
+
+        $this->assertSame(100, end($metrics['alignment_rates']));
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function it_returns_null_when_every_reviewed_prospect_was_needs_human(): void
+    {
+        Carbon::setTestNow('2026-09-20 12:00:00');
+
+        Prospect::factory()->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => ProspectClassification::Valid,
+            'reviewed_at' => now(),
+        ]);
+
+        $metrics = app(ProspectDashboardMetrics::class)->dailyAlignmentRates(30);
+
+        $this->assertNull(end($metrics['alignment_rates']));
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
     public function it_ignores_prospects_that_have_not_been_human_reviewed(): void
     {
         Carbon::setTestNow('2026-09-20 12:00:00');

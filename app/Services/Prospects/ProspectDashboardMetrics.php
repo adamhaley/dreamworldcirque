@@ -2,6 +2,7 @@
 
 namespace App\Services\Prospects;
 
+use App\Enums\ProspectClassification;
 use App\Models\Prospect;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,20 +51,29 @@ class ProspectDashboardMetrics
     }
 
     /**
+     * A NeedsHuman classification isn't a guess to be scored against --
+     * it's the AI correctly deferring rather than committing to a
+     * definitive call it isn't confident in (see ProspectClassifier's own
+     * "be conservative" instruction). Counting it as a misalignment would
+     * penalize exactly the behavior that instruction asks for, so those
+     * rows are excluded from both the numerator and the denominator
+     * rather than treated as wrong.
+     *
      * @param  Collection<int, Prospect>  $prospects
      */
     private function alignmentRate(Collection $prospects): ?int
     {
-        $reviewedCount = $prospects->count();
+        $scored = $prospects->filter(fn (Prospect $prospect): bool => $prospect->classification !== ProspectClassification::NeedsHuman);
+        $scoredCount = $scored->count();
 
-        if ($reviewedCount === 0) {
+        if ($scoredCount === 0) {
             return null;
         }
 
-        $alignments = $prospects
+        $alignments = $scored
             ->filter(fn (Prospect $prospect): bool => $prospect->classification === $prospect->human_classification)
             ->count();
 
-        return (int) round(($alignments / $reviewedCount) * 100);
+        return (int) round(($alignments / $scoredCount) * 100);
     }
 }
