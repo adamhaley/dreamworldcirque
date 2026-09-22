@@ -403,15 +403,77 @@
   const reopenButton = root.querySelector('.chat-reopen-button');
   const csrfToken = document.querySelector('meta[name="csrf-token"]');
 
-  const STARTER_CHIPS = [
-    'How much does it cost?',
-    'Do you travel outside LA and Vegas?',
-    'How far in advance should we book?',
-    'Do you provide insurance?',
-  ];
+  const faqs = JSON.parse(root.querySelector('.chat-faq-data').textContent);
+  const starterFaqs = selectStarterFaqs();
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   let hasOpenedBefore = false;
   let isBusy = false;
+  let requestPending = false;
+  let pendingReplies = 0;
+  let replyQueue = Promise.resolve();
+
+  function selectStarterFaqs() {
+    const storageKey = 'dreamworldcirque.chat.starterFaqIds';
+    let savedIds = [];
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+      if (Array.isArray(saved)) savedIds = saved;
+    } catch (error) {
+      // The widget still works when browser storage is unavailable.
+    }
+
+    const selected = [...new Set(savedIds)]
+      .map(function (id) { return faqs.find(function (faq) { return faq.id === id; }); })
+      .filter(Boolean).slice(0, 2);
+    const remaining = faqs.filter(function (faq) { return !selected.includes(faq); });
+    while (selected.length < 2 && remaining.length) {
+      selected.push(remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0]);
+    }
+
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(selected.map(function (faq) { return faq.id; })));
+    } catch (error) {
+      // Keep the selected pair in memory for this page instead.
+    }
+    return selected;
+  }
+
+  function revealMessage(element) {
+    if (reduceMotion.matches) return Promise.resolve();
+
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const words = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      (node.nodeValue.match(/\S+\s*|\s+/g) || []).forEach(function (word) {
+        words.push({ node: node, text: word });
+      });
+      node.nodeValue = '';
+    }
+    if (!words.length) return Promise.resolve();
+
+    element.setAttribute('aria-busy', 'true');
+    const duration = Math.min(1200, words.length * 45);
+    const started = performance.now();
+    let revealed = 0;
+    return new Promise(function (resolve) {
+      const timer = setInterval(function () {
+        const target = reduceMotion.matches ? words.length : Math.min(words.length,
+          Math.ceil(words.length * (performance.now() - started) / duration));
+        while (revealed < target) {
+          const word = words[revealed++];
+          word.node.nodeValue += word.text;
+        }
+        messages.scrollTop = messages.scrollHeight;
+        if (revealed === words.length) {
+          clearInterval(timer);
+          element.removeAttribute('aria-busy');
+          resolve();
+        }
+      }, 30);
+    });
+  }
 
   function addMessage(content, isUser, isHtml) {
     const messageDiv = document.createElement('div');
@@ -425,10 +487,23 @@
       messageDiv.textContent = content;
     }
 
-    messages.appendChild(messageDiv);
-    messages.scrollTop = messages.scrollHeight;
+    if (isUser) {
+      messages.appendChild(messageDiv);
+      messages.scrollTop = messages.scrollHeight;
+      return Promise.resolve();
+    }
 
-    return messageDiv;
+    pendingReplies++;
+    syncBusy();
+    replyQueue = replyQueue.then(function () {
+      messages.appendChild(messageDiv);
+      messages.scrollTop = messages.scrollHeight;
+      return revealMessage(messageDiv);
+    }).finally(function () {
+      pendingReplies--;
+      syncBusy();
+    });
+    return replyQueue;
   }
 
   function addTypingIndicator() {
@@ -442,23 +517,34 @@
   }
 
   function setBusy(busy) {
-    isBusy = busy;
-    input.disabled = busy;
-    sendButton.disabled = busy;
+    requestPending = busy;
+    syncBusy();
+  }
+
+  function syncBusy() {
+    isBusy = requestPending || pendingReplies > 0;
+    input.disabled = isBusy;
+    sendButton.disabled = isBusy;
+    root.querySelectorAll('.chat-chip, .chat-option').forEach(function (button) {
+      button.disabled = isBusy;
+    });
   }
 
   function renderChips() {
+    if (!starterFaqs.length) return;
     const chipsRow = document.createElement('div');
     chipsRow.className = 'chat-chips';
 
-    STARTER_CHIPS.forEach(function (question) {
+    starterFaqs.forEach(function (faq) {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chat-chip';
-      chip.textContent = question;
+      chip.textContent = faq.question;
       chip.addEventListener('click', function () {
+        if (isBusy) return;
         chipsRow.remove();
-        askQuestion(question);
+        addMessage(faq.question, true);
+        addMessage(faq.answer, false, true);
       });
       chipsRow.appendChild(chip);
     });
@@ -474,6 +560,7 @@
       button.className = 'chat-option';
       button.textContent = match.question;
       button.addEventListener('click', function () {
+        if (isBusy) return;
         addMessage(match.question, true);
         optionsBlock.remove();
         addMessage(match.answer, false, true);
@@ -550,32 +637,51 @@
   }
 
   function renderFallback(question) {
-    addMessage("I don't have an answer for that one — but I can pass it along to the team:", false);
-    renderLeadForm(question);
+    return addMessage("I can help with performances, booking, and event requirements. Try asking about one of those, or connect with our team for more help.", false)
+      .then(function () {
+        const options = document.createElement('div');
+        options.className = 'chat-options';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'chat-option';
+        button.textContent = 'Connect me with the team';
+        button.addEventListener('click', function () {
+          if (isBusy) return;
+          options.remove();
+          renderLeadForm(question);
+        });
+        options.appendChild(button);
+        messages.appendChild(options);
+        messages.scrollTop = messages.scrollHeight;
+      });
   }
 
   function handleResponse(question, data) {
+    if (data.outcome === 'greeting' || data.outcome === 'farewell') {
+      return addMessage(data.reply, false);
+    }
+
     if (data.outcome === 'confident' && data.matches.length > 0) {
-      addMessage(data.matches[0].answer, false, true);
-      return;
+      return addMessage(data.matches[0].answer, false, true);
     }
 
     if (data.outcome === 'ambiguous' && data.matches.length > 0) {
       const optionsBlock = document.createElement('div');
       optionsBlock.className = 'chat-options';
-      addMessage("I'm not totally sure — did you mean:", false);
-      messages.appendChild(optionsBlock);
-      renderOptions(optionsBlock, data.matches);
-      messages.scrollTop = messages.scrollHeight;
-      return;
+      return addMessage("Here's what I can help with:", false).then(function () {
+        messages.appendChild(optionsBlock);
+        renderOptions(optionsBlock, data.matches);
+        messages.scrollTop = messages.scrollHeight;
+      });
     }
 
-    renderFallback(question);
+    return renderFallback(question);
   }
 
   function askQuestion(question) {
     if (!question.trim() || isBusy || !csrfToken) return;
 
+    root.querySelectorAll('.chat-chips, .chat-options').forEach(function (element) { element.remove(); });
     addMessage(question, true);
     setBusy(true);
 
@@ -588,11 +694,11 @@
       })
       .then(function (data) {
         typingIndicator.remove();
-        handleResponse(question, data);
+        return handleResponse(question, data);
       })
       .catch(function () {
         typingIndicator.remove();
-        addMessage("Something went wrong on our end — please try again, or use the contact form below.", false);
+        return addMessage("Something went wrong on our end — please try again, or use the contact form below.", false);
       })
       .finally(function () {
         setBusy(false);
@@ -601,7 +707,7 @@
 
   function sendMessage(message) {
     const question = message.trim();
-    if (!question) return;
+    if (!question || isBusy) return;
 
     input.value = '';
     askQuestion(question);
@@ -616,8 +722,8 @@
 
     if (!hasOpenedBefore) {
       hasOpenedBefore = true;
-      addMessage("Hi! Ask me anything about Dream World Cirque, or pick a question below.", false);
-      renderChips();
+      addMessage("Hi! I can help with questions about Dream World Cirque's performances, booking, and event requirements.", false)
+        .then(renderChips);
     }
   });
 

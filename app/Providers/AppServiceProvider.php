@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\FaqItem;
 use App\Models\Page;
 use App\Models\SiteSetting;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -20,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('openai', fn (object $job): Limit => Limit::perMinute(30)->by('openai'));
+
+        View::composer('components.chat-widget', function (ViewInstance $view): void {
+            $view->with('chatFaqs', FaqItem::query()
+                ->orderBy('sort_order')->orderBy('id')
+                ->get(['id', 'question', 'answer']));
+        });
 
         View::composer(['components.layouts.site', 'pages.*'], function (ViewInstance $view): void {
             $view->with('settings', once(fn (): SiteSetting => SiteSetting::current()));

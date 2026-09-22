@@ -26,7 +26,7 @@ class FaqMatch extends Command
         $this->newLine();
 
         if ($result->matches === []) {
-            $this->warn('  Nothing scored high enough — this would hand off to lead capture.');
+            $this->warn('  Nothing scored high enough — this would offer an optional connection to the team.');
 
             return self::SUCCESS;
         }
