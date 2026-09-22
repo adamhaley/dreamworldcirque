@@ -36,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->brandName('Dream World Cirque')
             ->brandLogo(asset('assets/img/logo.png'))
+            ->darkModeBrandLogo(asset('assets/img/logo-white.png'))
             ->brandLogoHeight('2.5rem')
             ->colors([
                 'primary' => Color::hex('#ee0979'),
