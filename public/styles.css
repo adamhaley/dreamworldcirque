@@ -924,6 +924,12 @@ a {
   margin: 0;
 }
 
+.carousel-slide-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
 .carousel-item {
   position: relative;
   display: none;
@@ -1130,7 +1136,16 @@ a {
   padding: clamp(1.5rem, 5vw, 4rem);
 }
 
+.gallery-modal-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 .gallery-modal-figure {
+  grid-area: 1 / 1;
   margin: 0;
   max-width: 100%;
   text-align: center;
@@ -1151,8 +1166,7 @@ a {
   font-size: 0.95rem;
 }
 
-.gallery-modal-close,
-.gallery-modal-nav {
+.gallery-modal-close {
   position: absolute;
   border: 0;
   border-radius: 999px;
@@ -1164,8 +1178,7 @@ a {
   transition: background 160ms ease;
 }
 
-.gallery-modal-close:hover,
-.gallery-modal-nav:hover {
+.gallery-modal-close:hover {
   background: rgba(245, 245, 247, 0.24);
 }
 
@@ -1180,10 +1193,6 @@ a {
 
 .gallery-modal-nav {
   top: 50%;
-  width: 3rem;
-  height: 3rem;
-  font-size: 1.25rem;
-  transform: translateY(-50%);
 }
 
 .gallery-modal-prev {
@@ -1192,13 +1201,6 @@ a {
 
 .gallery-modal-next {
   right: clamp(0.5rem, 2vw, 1.5rem);
-}
-
-@media (max-width: 640px) {
-  .gallery-modal-nav {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
 }
 
 .promo-card {

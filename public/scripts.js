@@ -89,17 +89,89 @@
     if (!modal || typeof modal.showModal !== 'function') return;
 
     const items = Array.from(grid.querySelectorAll('[data-gallery-index]'));
-    const imgEl = modal.querySelector('[data-gallery-modal-img]');
-    const captionEl = modal.querySelector('[data-gallery-modal-caption]');
+    const figureEl = modal.querySelector('.gallery-modal-figure');
+    const stageEl = modal.querySelector('.gallery-modal-stage');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let activeIndex = 0;
+    let isAnimating = false;
 
-    function show(index) {
-      activeIndex = (index + items.length) % items.length;
-      const item = items[activeIndex];
+    function normalizedIndex(index) {
+      return (index + items.length) % items.length;
+    }
+
+    function populateFigure(figure, index) {
+      const item = items[index];
       const img = item.querySelector('img');
-      imgEl.src = img.getAttribute('src');
-      imgEl.alt = img.getAttribute('alt') || '';
-      captionEl.textContent = item.dataset.caption || '';
+      const figureImg = figure.querySelector('img');
+      const figureCaption = figure.querySelector('figcaption');
+      figureImg.src = img.getAttribute('src');
+      figureImg.alt = img.getAttribute('alt') || '';
+      figureCaption.textContent = item.dataset.caption || '';
+    }
+
+    function updateImage(index) {
+      activeIndex = normalizedIndex(index);
+      populateFigure(figureEl, activeIndex);
+    }
+
+    function preloadImage(index) {
+      const source = items[index].querySelector('img').getAttribute('src');
+
+      return new Promise(function (resolve) {
+        const image = new Image();
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+        image.src = source;
+
+        if (image.complete) {
+          if (typeof image.decode === 'function') {
+            image.decode().catch(function () {}).finally(resolve);
+          } else {
+            resolve();
+          }
+        }
+      });
+    }
+
+    function show(index, direction) {
+      if (!direction || reduceMotion || typeof figureEl.animate !== 'function') {
+        updateImage(index);
+        return;
+      }
+
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const targetIndex = normalizedIndex(index);
+      const directionMultiplier = direction === 'next' ? 1 : -1;
+
+      preloadImage(targetIndex).then(function () {
+        if (!modal.open) return;
+
+        const incomingFigure = figureEl.cloneNode(true);
+        populateFigure(incomingFigure, targetIndex);
+        stageEl.appendChild(incomingFigure);
+
+        const timing = { duration: 420, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' };
+
+        const outgoingAnimation = figureEl.animate([
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(' + (-100 * directionMultiplier) + 'vw)' },
+        ], timing);
+
+        const incomingAnimation = incomingFigure.animate([
+          { transform: 'translateX(' + (100 * directionMultiplier) + 'vw)' },
+          { transform: 'translateX(0)' },
+        ], timing);
+
+        return Promise.all([outgoingAnimation.finished, incomingAnimation.finished]).then(function () {
+          updateImage(targetIndex);
+          outgoingAnimation.cancel();
+          incomingFigure.remove();
+        });
+      }).finally(function () {
+        isAnimating = false;
+      });
     }
 
     items.forEach(function (item, index) {
@@ -119,14 +191,14 @@
     const prevButton = modal.querySelector('[data-gallery-prev]');
     if (prevButton) {
       prevButton.addEventListener('click', function () {
-        show(activeIndex - 1);
+        show(activeIndex - 1, 'previous');
       });
     }
 
     const nextButton = modal.querySelector('[data-gallery-next]');
     if (nextButton) {
       nextButton.addEventListener('click', function () {
-        show(activeIndex + 1);
+        show(activeIndex + 1, 'next');
       });
     }
 
@@ -137,8 +209,8 @@
     });
 
     modal.addEventListener('keydown', function (event) {
-      if (event.key === 'ArrowRight') show(activeIndex + 1);
-      if (event.key === 'ArrowLeft') show(activeIndex - 1);
+      if (event.key === 'ArrowRight') show(activeIndex + 1, 'next');
+      if (event.key === 'ArrowLeft') show(activeIndex - 1, 'previous');
     });
   });
 })();

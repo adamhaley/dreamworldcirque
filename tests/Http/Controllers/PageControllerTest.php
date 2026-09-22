@@ -48,7 +48,11 @@ class PageControllerTest extends TestCase
 
         $response = $this->get('/');
 
-        $response->assertOk()->assertSee('Absolutely magical')->assertSee('Silks at sunset');
+        $response
+            ->assertOk()
+            ->assertSee('Absolutely magical')
+            ->assertSee('Silks at sunset')
+            ->assertSee('<a class="carousel-slide-link" href="/gallery/" aria-label="View full gallery">', escape: false);
     }
 
     #[Test]

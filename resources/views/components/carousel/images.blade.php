@@ -4,16 +4,18 @@
     <div class="carousel-inner carousel-track" aria-live="polite">
       @foreach ($photos as $photo)
       <div @class(['carousel-item', 'active' => $loop->first])>
-        <figure class="carousel-slide">
-          <figure class="carousel-media">
-            <img src="/storage/{{ $photo->image }}" alt="{{ $photo->alt }}" />
+        <a class="carousel-slide-link" href="/gallery/" aria-label="View full gallery">
+          <figure class="carousel-slide">
+            <figure class="carousel-media">
+              <img src="/storage/{{ $photo->image }}" alt="{{ $photo->alt }}" />
+            </figure>
+            @if ($photo->caption)
+            <div class="codette-carousel-caption">
+              <p>{{ $photo->caption }}</p>
+            </div>
+            @endif
           </figure>
-          @if ($photo->caption)
-          <div class="codette-carousel-caption">
-            <p>{{ $photo->caption }}</p>
-          </div>
-          @endif
-        </figure>
+        </a>
       </div>
       @endforeach
     </div>
