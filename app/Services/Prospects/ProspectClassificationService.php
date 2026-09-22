@@ -14,13 +14,17 @@ class ProspectClassificationService
 {
     private const MaxTrainingExamples = 8;
 
+    public function __construct(private ProspectEmailDomainChecker $emailDomainChecker) {}
+
     public function classify(Prospect $prospect): Prospect
     {
         $trainingExamples = $this->reviewedExamplesFor($prospect);
+        $emailMxValid = $prospect->email !== null ? $this->emailDomainChecker->hasMailExchanger($prospect->email) : null;
 
-        $response = app(ProspectClassifier::class)->prompt($this->prompt($prospect, $trainingExamples));
+        $response = app(ProspectClassifier::class)->prompt($this->prompt($prospect, $trainingExamples, $emailMxValid));
 
         $prospect->update([
+            'email_mx_valid' => $emailMxValid,
             'classification' => $this->classification($response['classification'] ?? null),
             'classification_confidence' => $this->confidence($response['confidence'] ?? null),
             'classification_reason' => is_string($response['reason'] ?? null)
@@ -36,7 +40,7 @@ class ProspectClassificationService
     /**
      * @param  Collection<int, Prospect>  $trainingExamples
      */
-    private function prompt(Prospect $prospect, Collection $trainingExamples): string
+    private function prompt(Prospect $prospect, Collection $trainingExamples, ?bool $emailMxValid): string
     {
         return sprintf(
             <<<'PROMPT'
@@ -51,14 +55,28 @@ Human-reviewed examples:
 
 Inquiry:
 Name: %s
+Email: %s
 Form type: %s
 Interests: %s
+Email domain accepts mail: %s
 Message: %s
+
+A failing email domain check means the address's domain has no mail servers willing
+to accept mail -- it does not by itself mean the inquiry is fake. A genuine inquiry
+can still have a typo'd email address, and a bot can register on a legitimate free
+provider and pass this check. Weigh it alongside the message content and interests,
+not as a standalone verdict.
 PROMPT,
             $this->formatTrainingExamples($trainingExamples),
             $prospect->name ?? '(not given)',
+            $prospect->email ?? '(not given)',
             $prospect->form_type ?? '(not given)',
             $prospect->interests !== null && $prospect->interests !== [] ? implode(', ', $prospect->interests) : '(none)',
+            match ($emailMxValid) {
+                true => 'yes',
+                false => 'no',
+                null => 'no email given',
+            },
             Str::limit((string) $prospect->message, 1000),
         );
     }
@@ -100,11 +118,10 @@ PROMPT,
     private function reviewedExampleQuery(Prospect $prospect): Builder
     {
         return Prospect::query()
-            ->select(['id', 'name', 'message', 'classification', 'status', 'reviewed_at', 'reviewed_by_user_id'])
+            ->select(['id', 'name', 'email', 'message', 'classification', 'status', 'reviewed_at', 'reviewed_by_user_id'])
             ->whereKeyNot($prospect->id)
             ->whereNotNull('reviewed_at')
-            ->whereNotNull('reviewed_by_user_id')
-            ->whereNotNull('message');
+            ->whereNotNull('reviewed_by_user_id');
     }
 
     /**
@@ -120,11 +137,15 @@ PROMPT,
             ->map(fn (Prospect $example, int $index): string => sprintf(
                 <<<'EXAMPLE'
                 Example %d:
+                Name: %s
+                Email: %s
                 Message: %s
                 Original AI classification: %s
                 Correct human decision: %s
                 EXAMPLE,
                 $index + 1,
+                $example->name ?? '(not given)',
+                $example->email ?? '(not given)',
                 Str::limit((string) $example->message, 300),
                 $example->classification?->getLabel() ?? 'Unclassified',
                 $example->status->getLabel(),

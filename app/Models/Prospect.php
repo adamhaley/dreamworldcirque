@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Mail;
  * @property array<string, mixed>|null $raw_payload
  */
 #[Fillable([
-    'source', 'source_external_id', 'submitted_at', 'form_type', 'name', 'email', 'phone', 'website',
+    'source', 'source_external_id', 'submitted_at', 'form_type', 'name', 'email', 'email_mx_valid', 'phone', 'website',
     'message', 'interests', 'submission_count',
     'classification', 'classification_confidence', 'classification_reason', 'human_classification', 'classified_at',
     'status', 'review_note', 'reviewed_by_user_id', 'reviewed_at',
@@ -38,6 +38,7 @@ class Prospect extends Model
     {
         return [
             'submitted_at' => 'datetime',
+            'email_mx_valid' => 'boolean',
             'interests' => 'array',
             'classification' => ProspectClassification::class,
             'classification_confidence' => 'integer',
