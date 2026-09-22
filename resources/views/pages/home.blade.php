@@ -93,9 +93,8 @@
         </div>
         <p class="section-copy">Share a few details and we&#39;ll design a custom cirque performance package for your venue, audience, and budget.</p>
       </div>
-      <x-contact-grid :settings="$settings">
-        <x-contact-card kicker="Get a Quote" href="#contact">Start your event inquiry</x-contact-card>
-      </x-contact-grid>
+      <x-contact-grid :settings="$settings" />
+      <x-contact-form form-type="Home Form Submission" />
     </div>
   </section>
 

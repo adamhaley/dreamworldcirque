@@ -53,8 +53,14 @@ class ContentSeeder extends Seeder
             ]);
         }
 
+        $faqKeywords = require __DIR__.'/data/faq-keywords.php';
+
         foreach ($content['faq'] as $index => $item) {
-            FaqItem::create([...$item, 'sort_order' => $index]);
+            FaqItem::create([
+                ...$item,
+                'keywords' => $faqKeywords[$item['question']] ?? null,
+                'sort_order' => $index,
+            ]);
         }
 
         $this->createPage($content['home'], ['title' => 'Home', 'template' => PageTemplate::Home]);
