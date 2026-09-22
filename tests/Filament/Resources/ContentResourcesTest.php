@@ -82,6 +82,21 @@ class ContentResourcesTest extends TestCase
     }
 
     #[Test]
+    public function it_saves_faq_keywords(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $faq = FaqItem::factory()->create(['keywords' => null]);
+
+        Livewire::test(ManageFaqItems::class)
+            ->callTableAction(EditAction::class, $faq, data: [
+                'keywords' => ['price', 'pricing', 'budget'],
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame('price,pricing,budget', $faq->fresh()->keywords);
+    }
+
+    #[Test]
     public function it_reorders_gallery_photos(): void
     {
         $this->actingAs(User::factory()->create());

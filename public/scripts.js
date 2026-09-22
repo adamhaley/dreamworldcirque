@@ -315,25 +315,153 @@
   const messages = root.querySelector('.chat-messages');
   const closeButton = root.querySelector('.chat-close-button');
   const reopenButton = root.querySelector('.chat-reopen-button');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
 
-  function addMessage(message, isUser) {
+  const STARTER_CHIPS = [
+    'How much does it cost?',
+    'Do you travel outside LA and Vegas?',
+    'How far in advance should we book?',
+    'Do you provide insurance?',
+  ];
+
+  let hasOpenedBefore = false;
+  let isBusy = false;
+
+  function addMessage(content, isUser, isHtml) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message ' + (isUser ? 'chat-user-message' : 'chat-bot-message');
-    messageDiv.textContent = message;
+    messageDiv.className = 'chat-message ' + (isUser ? 'chat-user-message' : 'chat-bot-message chat-answer');
+
+    if (isHtml) {
+      // FAQ answers are trusted, admin-authored RichEditor HTML -- the same
+      // trust level the FAQ page itself renders with {!! $item->answer !!}.
+      messageDiv.innerHTML = content;
+    } else {
+      messageDiv.textContent = content;
+    }
+
     messages.appendChild(messageDiv);
+    messages.scrollTop = messages.scrollHeight;
+
+    return messageDiv;
+  }
+
+  function addTypingIndicator() {
+    const indicator = document.createElement('div');
+    indicator.className = 'chat-message chat-bot-message chat-typing';
+    indicator.innerHTML = '<span></span><span></span><span></span>';
+    messages.appendChild(indicator);
+    messages.scrollTop = messages.scrollHeight;
+
+    return indicator;
+  }
+
+  function setBusy(busy) {
+    isBusy = busy;
+    input.disabled = busy;
+    sendButton.disabled = busy;
+  }
+
+  function renderChips() {
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'chat-chips';
+
+    STARTER_CHIPS.forEach(function (question) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chat-chip';
+      chip.textContent = question;
+      chip.addEventListener('click', function () {
+        chipsRow.remove();
+        askQuestion(question);
+      });
+      chipsRow.appendChild(chip);
+    });
+
+    messages.appendChild(chipsRow);
     messages.scrollTop = messages.scrollHeight;
   }
 
+  function renderOptions(optionsBlock, matches) {
+    matches.forEach(function (match) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'chat-option';
+      button.textContent = match.question;
+      button.addEventListener('click', function () {
+        addMessage(match.question, true);
+        optionsBlock.remove();
+        addMessage(match.answer, false, true);
+      });
+      optionsBlock.appendChild(button);
+    });
+  }
+
+  // Takes the unanswered question so a later step (lead capture) can offer
+  // to pass it straight to the team instead of asking the visitor to
+  // retype it into the contact form.
+  function renderFallback(question) {
+    addMessage("I don't have an answer for that one — please use the contact form below and we'll get back to you personally.", false);
+  }
+
+  function handleResponse(question, data) {
+    if (data.outcome === 'confident' && data.matches.length > 0) {
+      addMessage(data.matches[0].answer, false, true);
+      return;
+    }
+
+    if (data.outcome === 'ambiguous' && data.matches.length > 0) {
+      const optionsBlock = document.createElement('div');
+      optionsBlock.className = 'chat-options';
+      addMessage("I'm not totally sure — did you mean:", false);
+      messages.appendChild(optionsBlock);
+      renderOptions(optionsBlock, data.matches);
+      messages.scrollTop = messages.scrollHeight;
+      return;
+    }
+
+    renderFallback(question);
+  }
+
+  function askQuestion(question) {
+    if (!question.trim() || isBusy || !csrfToken) return;
+
+    addMessage(question, true);
+    setBusy(true);
+
+    const typingIndicator = addTypingIndicator();
+
+    fetch('/chat/ask', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+      },
+      body: JSON.stringify({ question: question }),
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error('chat request failed');
+        return response.json();
+      })
+      .then(function (data) {
+        typingIndicator.remove();
+        handleResponse(question, data);
+      })
+      .catch(function () {
+        typingIndicator.remove();
+        addMessage("Something went wrong on our end — please try again, or use the contact form below.", false);
+      })
+      .finally(function () {
+        setBusy(false);
+      });
+  }
+
   function sendMessage(message) {
-    if (!message.trim()) return;
+    const question = message.trim();
+    if (!question) return;
 
-    addMessage(message, true);
     input.value = '';
-
-    // No chat backend is wired up yet, so respond with a placeholder.
-    window.setTimeout(function () {
-      addMessage("Thanks for reaching out! Our chat assistant isn't connected yet — please use the contact form and we'll get back to you.", false);
-    }, 400);
+    askQuestion(question);
   }
 
   closeButton.addEventListener('click', function () {
@@ -342,6 +470,12 @@
 
   reopenButton.addEventListener('click', function () {
     root.classList.add('is-open');
+
+    if (!hasOpenedBefore) {
+      hasOpenedBefore = true;
+      addMessage("Hi! Ask me anything about Dream World Cirque, or pick a question below.", false);
+      renderChips();
+    }
   });
 
   sendButton.addEventListener('click', function () {

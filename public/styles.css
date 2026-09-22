@@ -1929,6 +1929,86 @@ a {
   border-radius: 4px;
 }
 
+/* RichEditor answers arrive as full <p> blocks; without this they carry
+   their own default paragraph spacing, which reads as too loose inside an
+   80%-width chat bubble. */
+.chat-answer p {
+  margin: 0 0 0.5em;
+}
+
+.chat-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-answer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 15px;
+}
+
+.chat-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: 0.4;
+  animation: chat-typing-bounce 1s infinite ease-in-out;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes chat-typing-bounce {
+  0%, 60%, 100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.chat-chips,
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.chat-chip,
+.chat-option {
+  align-self: flex-start;
+  max-width: 90%;
+  text-align: left;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 15px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.chat-chip:hover,
+.chat-option:hover {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
 @media (max-width: 480px) {
   .chat-container {
     right: 1rem;
