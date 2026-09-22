@@ -653,3 +653,97 @@
     });
   });
 })();
+
+(function () {
+  const forms = document.querySelectorAll('.contact-form');
+  if (!forms.length) return;
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
+  if (!csrfToken) return;
+
+  forms.forEach(function (form) {
+    const submitButton = form.querySelector('.contact-form-submit');
+    const statusEl = form.querySelector('.contact-form-status');
+    const errorEls = form.querySelectorAll('.contact-form-error');
+
+    function clearErrors() {
+      errorEls.forEach(function (el) {
+        el.hidden = true;
+        el.textContent = '';
+      });
+      statusEl.hidden = true;
+    }
+
+    function showFieldErrors(errors) {
+      Object.keys(errors).forEach(function (field) {
+        const el = form.querySelector('.contact-form-error[data-field="' + field + '"]');
+        if (el) {
+          el.textContent = errors[field][0];
+          el.hidden = false;
+        }
+      });
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearErrors();
+      submitButton.disabled = true;
+
+      const interests = Array.from(form.querySelectorAll('input[name="interests[]"]:checked')).map(function (checkbox) {
+        return checkbox.value;
+      });
+
+      fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-CSRF-TOKEN': csrfToken.getAttribute('content'),
+        },
+        body: JSON.stringify({
+          name: form.name.value,
+          email: form.email.value,
+          phone: form.phone.value,
+          message: form.message.value,
+          interests: interests,
+          form_type: form.form_type.value,
+          website: form.website.value,
+        }),
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, status: response.status, data: data };
+          });
+        })
+        .then(function (result) {
+          if (result.status === 422) {
+            showFieldErrors(result.data.errors || {});
+            submitButton.disabled = false;
+            return;
+          }
+
+          if (!result.ok) {
+            statusEl.textContent = 'Something went wrong — please try again.';
+            statusEl.hidden = false;
+            submitButton.disabled = false;
+            return;
+          }
+
+          // Leaves the fields in place (rather than clearing/hiding the
+          // form) so a visitor can see exactly what they sent -- only the
+          // submit button and inputs lock, with the confirmation appended
+          // above them.
+          statusEl.textContent = result.data.message;
+          statusEl.hidden = false;
+          Array.from(form.elements).forEach(function (element) {
+            element.disabled = true;
+          });
+        })
+        .catch(function () {
+          statusEl.textContent = 'Something went wrong — please try again.';
+          statusEl.hidden = false;
+          submitButton.disabled = false;
+        });
+    });
+  });
+})();

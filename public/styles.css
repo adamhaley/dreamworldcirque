@@ -1345,6 +1345,105 @@ a {
   text-decoration: none;
 }
 
+.contact-form {
+  margin-top: 1.5rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.contact-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.contact-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.contact-form-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.contact-form-optional {
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.contact-form-input {
+  padding: 0.75rem 1rem;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-page-top, var(--color-surface));
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.contact-form-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.contact-form-textarea {
+  resize: vertical;
+}
+
+.contact-form-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.25rem;
+}
+
+.contact-form-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.contact-form-error {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+}
+
+.contact-form-status {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+/* Off-screen rather than display:none, for the same reason as the chat
+   widget's honeypot -- see its comment in public/scripts.js. */
+.contact-form-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contact-form-submit {
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .contact-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
