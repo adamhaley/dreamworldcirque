@@ -69,7 +69,7 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_renders_a_history_back_link_with_the_parent_page_as_a_fallback(): void
+    public function it_renders_a_home_link_in_the_masthead(): void
     {
         $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
         Page::factory()->template(PageTemplate::Service)->create([
@@ -79,7 +79,7 @@ class PageControllerTest extends TestCase
         $response = $this->get('/services/aerial/');
 
         $response->assertSee(
-            '<a class="hero-back-link" href="/services/" aria-label="Back to previous page" data-history-back>',
+            '<a class="hero-back-link" href="/" aria-label="Back to home">',
             escape: false,
         );
     }
