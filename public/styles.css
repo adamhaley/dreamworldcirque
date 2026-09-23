@@ -1153,17 +1153,23 @@ a {
 
 .gallery-modal-figure img {
   display: block;
+  width: auto;
+  height: auto;
   max-width: 100%;
-  max-height: 78vh;
+  max-height: min(78vh, calc(100vh - 10rem));
   margin: 0 auto;
   object-fit: contain;
   border-radius: var(--radius-md);
 }
 
 .gallery-modal-figure figcaption {
-  margin-top: 1rem;
+  margin: 1rem 0 0;
   color: rgba(245, 245, 247, 0.8);
   font-size: 0.95rem;
+}
+
+.gallery-modal-figure figcaption:empty {
+  display: none;
 }
 
 .gallery-modal-close {
