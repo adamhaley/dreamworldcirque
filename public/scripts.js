@@ -425,7 +425,15 @@
     return selected;
   }
 
-  function revealMessage(element) {
+  function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  // Reveals one word per tick at a fixed interval, rather than growing a
+  // time/duration ratio that can jump several words at once on a tick --
+  // that variable-size jump is what read as jittery. Longer replies get a
+  // shorter per-word delay so they don't drag on forever.
+  function revealWords(element) {
     if (reduceMotion.matches) return Promise.resolve();
 
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
@@ -440,25 +448,41 @@
     if (!words.length) return Promise.resolve();
 
     element.setAttribute('aria-busy', 'true');
-    const duration = Math.min(1200, words.length * 45);
-    const started = performance.now();
+    const wordDelay = Math.max(18, Math.min(55, 3500 / words.length));
     let revealed = 0;
     return new Promise(function (resolve) {
       const timer = setInterval(function () {
-        const target = reduceMotion.matches ? words.length : Math.min(words.length,
-          Math.ceil(words.length * (performance.now() - started) / duration));
-        while (revealed < target) {
-          const word = words[revealed++];
-          word.node.nodeValue += word.text;
-        }
+        const word = words[revealed++];
+        word.node.nodeValue += word.text;
         messages.scrollTop = messages.scrollHeight;
         if (revealed === words.length) {
           clearInterval(timer);
           element.removeAttribute('aria-busy');
           resolve();
         }
-      }, 30);
+      }, wordDelay);
     });
+  }
+
+  // Multi-paragraph answers reveal one block at a time (full paragraph typed
+  // out, brief pause, next paragraph starts) instead of typing continuously
+  // straight through paragraph breaks.
+  function revealMessage(element) {
+    const blocks = Array.from(element.children).filter(function (child) {
+      return child.textContent.trim().length > 0;
+    });
+    if (blocks.length <= 1) return revealWords(element);
+
+    blocks.forEach(function (block) { block.style.display = 'none'; });
+
+    return blocks.reduce(function (promise, block, index) {
+      return promise.then(function () {
+        block.style.display = '';
+        return revealWords(block);
+      }).then(function () {
+        if (index < blocks.length - 1) return delay(220);
+      });
+    }, Promise.resolve());
   }
 
   function addMessage(content, isUser, isHtml) {
@@ -516,6 +540,22 @@
     });
   }
 
+  // Chip/option answers already have the content on hand (no network round
+  // trip), but still pause on a "thinking" indicator first so they don't
+  // feel out of step with the answers that do go through /chat/ask.
+  function respondAfterThinking(question, answer) {
+    setBusy(true);
+    const typingIndicator = addTypingIndicator();
+    return delay(500).then(function () {
+      typingIndicator.remove();
+      return addMessage(answer, false, true);
+    }).then(function () {
+      renderConversionCta(question);
+    }).finally(function () {
+      setBusy(false);
+    });
+  }
+
   function renderChips() {
     if (!starterFaqs.length) return;
     const chipsRow = document.createElement('div');
@@ -530,7 +570,7 @@
         if (isBusy) return;
         chipsRow.remove();
         addMessage(faq.question, true);
-        addMessage(faq.answer, false, true);
+        respondAfterThinking(faq.question, faq.answer);
       });
       chipsRow.appendChild(chip);
     });
@@ -549,10 +589,39 @@
         if (isBusy) return;
         addMessage(match.question, true);
         optionsBlock.remove();
-        addMessage(match.answer, false, true);
+        respondAfterThinking(match.question, match.answer);
       });
       optionsBlock.appendChild(button);
     });
+  }
+
+  // The widget is designed for a single-turn Q&A, not an open-ended
+  // conversation -- every answered FAQ (chip, option, or confident match)
+  // ends with a direct path onward, rather than leaving the visitor to find
+  // the FAQ page or contact form on their own.
+  function renderConversionCta(question) {
+    const cta = document.createElement('div');
+    cta.className = 'chat-options chat-cta-row';
+
+    const faqLink = document.createElement('a');
+    faqLink.href = '/faq/';
+    faqLink.className = 'chat-option';
+    faqLink.textContent = 'View the FAQs';
+    cta.appendChild(faqLink);
+
+    const quoteButton = document.createElement('button');
+    quoteButton.type = 'button';
+    quoteButton.className = 'chat-option chat-cta-option';
+    quoteButton.textContent = 'Get a Quote';
+    quoteButton.addEventListener('click', function () {
+      if (isBusy) return;
+      cta.remove();
+      renderLeadForm(question);
+    });
+    cta.appendChild(quoteButton);
+
+    messages.appendChild(cta);
+    messages.scrollTop = messages.scrollHeight;
   }
 
   function postJson(url, body) {
@@ -648,7 +717,9 @@
     }
 
     if (data.outcome === 'confident' && data.matches.length > 0) {
-      return addMessage(data.matches[0].answer, false, true);
+      return addMessage(data.matches[0].answer, false, true).then(function () {
+        renderConversionCta(question);
+      });
     }
 
     if (data.outcome === 'ambiguous' && data.matches.length > 0) {
@@ -673,12 +744,18 @@
 
     const typingIndicator = addTypingIndicator();
 
-    postJson('/chat/ask', { question: question })
-      .then(function (response) {
+    // The FAQ match itself resolves near-instantly -- pairing it with a
+    // fixed minimum delay keeps the "thinking" indicator from just flashing
+    // by, which read as too abrupt.
+    Promise.all([
+      postJson('/chat/ask', { question: question }).then(function (response) {
         if (!response.ok) throw new Error('chat request failed');
         return response.json();
-      })
-      .then(function (data) {
+      }),
+      delay(500),
+    ])
+      .then(function (results) {
+        const data = results[0];
         typingIndicator.remove();
         return handleResponse(question, data);
       })

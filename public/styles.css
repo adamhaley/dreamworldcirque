@@ -2116,6 +2116,21 @@ a {
   color: var(--color-surface);
 }
 
+a.chat-option {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.chat-cta-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.chat-cta-row .chat-option {
+  max-width: none;
+  text-align: center;
+}
+
 .chat-lead-form {
   display: flex;
   flex-direction: column;
