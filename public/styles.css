@@ -423,9 +423,10 @@ a {
    comment), so an in-page anchor jump — nav links, "Get a Quote" CTAs —
    lands with the target's true top hidden under it unless compensated.
    Scoped to sections with an id, since those are exactly the ones used as
-   scroll targets (about/events/film-tv/services/gallery/contact). Also
-   applied to .faq-item so an opened accordion question snaps to the same
-   offset below the header instead of tucking under it. */
+   scroll targets (about/events/film-tv/services). Also applied to
+   .scroll-target for anchor targets that aren't the section itself
+   (gallery, contact form) and to .faq-item so an opened accordion question
+   snaps to the same offset below the header instead of tucking under it. */
 .section[id],
 .scroll-target,
 .faq-item {
@@ -434,7 +435,8 @@ a {
 
 /* The homepage contact block is the final in-page target. Giving it at
    least a viewport of space prevents the browser's maximum scroll position
-   from clamping #contact while the gallery is still visible above it. */
+   from clamping the #contact form heading while the gallery is still
+   visible above it. */
 .home-contact-section {
   min-height: calc(100vh - 7rem);
 }
@@ -1351,6 +1353,17 @@ a {
   font-family: var(--font-heading);
   font-size: 1.3rem;
   text-decoration: none;
+}
+
+.contact-form-heading {
+  margin: 2.75rem 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+  letter-spacing: -0.03em;
+}
+
+.contact-form-copy {
+  margin: 0;
 }
 
 .contact-form {

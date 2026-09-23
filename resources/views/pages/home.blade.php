@@ -20,7 +20,7 @@
       @if ($page->hero_subheading)
       <p class="masthead-subheading">{{ $page->hero_subheading }}</p>
       @endif
-      <div class="button-row"><x-button href="#contact">Request a Quote</x-button></div>
+      <div class="button-row"><x-button href="#quote">Request a Quote</x-button></div>
     </div>
     <div class="masthead-circle masthead-circle-1"></div>
     <div class="masthead-circle masthead-circle-2"></div>
@@ -84,16 +84,17 @@
   </section>
   @endif
 
-  <section class="section home-contact-section" id="contact">
+  <section class="section home-contact-section">
     <div class="container">
-      <div class="section-heading">
+      <div id="contact" class="scroll-target section-heading">
         <div>
           <p class="eyebrow">Contact</p>
-          <h2 class="section-title">Tell us about your event.</h2>
+          <h2 class="section-title">Get in touch with us.</h2>
         </div>
-        <p class="section-copy">Share a few details and we&#39;ll design a custom cirque performance package for your venue, audience, and budget.</p>
       </div>
       <x-contact-grid :settings="$settings" />
+      <h3 id="quote" class="scroll-target contact-form-heading">Tell us more about your event.</h3>
+      <p class="section-copy contact-form-copy">Share a few details and we&#39;ll design a custom cirque performance package for your venue, audience, and budget.</p>
       <x-contact-form form-type="Home Form Submission" />
     </div>
   </section>
