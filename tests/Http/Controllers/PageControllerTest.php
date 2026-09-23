@@ -8,6 +8,7 @@ use App\Models\FaqItem;
 use App\Models\GalleryPhoto;
 use App\Models\Page;
 use App\Models\Quote;
+use App\Models\SiteSetting;
 use App\Models\User;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -151,5 +152,26 @@ class PageControllerTest extends TestCase
         $response = $this->get('/');
 
         $this->assertSame($expected, $response->headers->has('X-Robots-Tag'));
+    }
+
+    #[Test]
+    public function it_overrides_the_accent_color_when_one_is_set(): void
+    {
+        Page::factory()->home()->create();
+        SiteSetting::current()->update(['accent_color' => '#3366ff']);
+
+        $response = $this->get('/');
+
+        $response->assertSee('<style>:root { --color-accent: #3366ff; }</style>', escape: false);
+    }
+
+    #[Test]
+    public function it_omits_the_accent_color_override_by_default(): void
+    {
+        Page::factory()->home()->create();
+
+        $response = $this->get('/');
+
+        $response->assertDontSee('--color-accent:', escape: false);
     }
 }
