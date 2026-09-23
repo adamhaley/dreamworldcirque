@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\ProspectClassificationAlignmentChart;
+use App\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -38,8 +39,14 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('assets/img/logo.png'))
             ->darkModeBrandLogo(asset('assets/img/logo-white.png'))
             ->brandLogoHeight('2.5rem')
-            ->colors([
-                'primary' => Color::hex('#ee0979'),
+            // A closure, not a plain array: `panel()` runs during provider
+            // boot for every process (console commands, queue workers, the
+            // test suite before migrations run), not just real admin
+            // requests. Evaluating SiteSetting::current() eagerly there hits
+            // the database before it's ready; Panel::getColors() only calls
+            // this closure when a panel is actually being rendered.
+            ->colors(fn (): array => [
+                'primary' => Color::hex(SiteSetting::current()->accent_color ?: SiteSetting::DefaultAccentColor),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

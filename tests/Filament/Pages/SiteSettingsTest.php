@@ -36,4 +36,28 @@ class SiteSettingsTest extends TestCase
             ->call('save')
             ->assertHasFormErrors(['instagram_url' => 'url']);
     }
+
+    #[Test]
+    public function it_saves_a_custom_accent_color(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm(['accent_color' => '#3366ff'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('#3366ff', SiteSetting::current()->accent_color);
+    }
+
+    #[Test]
+    public function it_rejects_an_invalid_accent_color(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(SiteSettings::class)
+            ->fillForm(['accent_color' => 'not-a-color'])
+            ->call('save')
+            ->assertHasFormErrors(['accent_color' => 'regex']);
+    }
 }

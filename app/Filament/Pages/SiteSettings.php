@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\SiteSetting;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -56,6 +57,19 @@ class SiteSettings extends Page
                         TextInput::make('facebook_url')->label('Facebook')->url(),
                         TextInput::make('instagram_url')->label('Instagram')->url(),
                         TextInput::make('linkedin_url')->label('LinkedIn')->url(),
+                    ]),
+                Section::make('Branding')
+                    ->description('The accent color used sitewide -- eyebrows, buttons, links, icons. Leave empty for the default pink.')
+                    ->schema([
+                        ColorPicker::make('accent_color')
+                            ->label('Accent color')
+                            ->hex()
+                            ->placeholder(SiteSetting::DefaultAccentColor)
+                            // Rendered directly into an inline <style> block on
+                            // every page (see the site layout), so this is
+                            // validated strictly rather than just HTML-escaped --
+                            // string escaping doesn't protect a raw <style> body.
+                            ->rule('regex:/^#[0-9a-f]{6}$/i'),
                     ]),
             ]);
     }

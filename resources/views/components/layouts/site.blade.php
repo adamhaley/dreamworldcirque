@@ -29,6 +29,12 @@
     @endif
     @stack('head')
     <link rel="stylesheet" href="/styles.css" />
+    @if ($settings->accent_color)
+    {{-- Overrides the pink baked into styles.css's :root -- kept as a tiny
+         inline block rather than templating the whole stylesheet, since this
+         is the only value in it that's ever CMS-controlled. --}}
+    <style>:root { --color-accent: {{ $settings->accent_color }}; }</style>
+    @endif
   </head>
   <body>
     <div class="site-shell">
@@ -37,7 +43,13 @@
           <a class="site-brand" href="/"><span class="brand-logo-swap"><img src="/assets/img/logo-white.png" alt="" class="brand-logo brand-logo-light" /><img src="/assets/img/logo.png" alt="" class="brand-logo brand-logo-dark" /></span><span class="brand-wordmark">Dream World Cirque</span></a>
           <nav class="site-nav" aria-label="Primary">
             @foreach ($navPages as $navPage)
-              @php($navHref = $page->template === \App\Enums\PageTemplate::Home && $navPage->nav_anchor ? $navPage->nav_anchor : $navPage->url())
+              {{-- A nav_anchor page always jumps to that homepage section, from any
+                   page -- not just when already on the homepage. On the homepage
+                   itself the bare hash lets the in-page smooth-scroll handle it;
+                   elsewhere it's prefixed with "/" so it's a real navigation to the
+                   homepage, which the fresh-load hash-scroll handles (see
+                   settleThenScrollTo in scripts.js). --}}
+              @php($navHref = $navPage->nav_anchor ? ($page->template === \App\Enums\PageTemplate::Home ? $navPage->nav_anchor : '/'.$navPage->nav_anchor) : $navPage->url())
               @if ($navPage->children->isNotEmpty())
               <div class="nav-item has-dropdown">
                 <a href="{{ $navHref }}">{{ $navPage->title }} <svg class="nav-caret" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7H16L10 15Z"/></svg></a>

@@ -86,7 +86,7 @@ class ContentSeeder extends Seeder
 
         $this->createPage($content['pages']['gallery'], [
             'title' => 'Gallery', 'slug' => 'gallery', 'template' => PageTemplate::Gallery,
-            'sort_order' => 2, 'show_in_nav' => true, 'nav_anchor' => '#gallery',
+            'sort_order' => 2, 'show_in_nav' => true,
         ]);
 
         $this->createPage($content['pages']['faq'], [
@@ -96,7 +96,7 @@ class ContentSeeder extends Seeder
 
         $this->createPage($content['pages']['contact'], [
             'title' => 'Contact', 'slug' => 'contact', 'template' => PageTemplate::Contact,
-            'sort_order' => 4, 'show_in_nav' => true, 'nav_anchor' => '#contact',
+            'sort_order' => 4, 'show_in_nav' => true,
         ]);
     }
 
