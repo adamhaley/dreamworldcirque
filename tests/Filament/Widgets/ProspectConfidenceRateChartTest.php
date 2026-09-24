@@ -2,7 +2,7 @@
 
 namespace Tests\Filament\Widgets;
 
-use App\Filament\Widgets\ProspectClassificationAlignmentChart;
+use App\Filament\Widgets\ProspectConfidenceRateChart;
 use App\Models\User;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -10,8 +10,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-#[CoversClass(ProspectClassificationAlignmentChart::class)]
-class ProspectClassificationAlignmentChartTest extends TestCase
+#[CoversClass(ProspectConfidenceRateChart::class)]
+class ProspectConfidenceRateChartTest extends TestCase
 {
     public static function roleProvider(): Generator
     {
@@ -21,10 +21,10 @@ class ProspectClassificationAlignmentChartTest extends TestCase
 
     #[Test]
     #[DataProvider('roleProvider')]
-    public function it_restricts_the_alignment_chart_to_admins(bool $isAdmin, bool $expected): void
+    public function it_restricts_the_confidence_rate_chart_to_admins(bool $isAdmin, bool $expected): void
     {
         $this->actingAs($isAdmin ? User::factory()->admin()->create() : User::factory()->create());
 
-        $this->assertSame($expected, ProspectClassificationAlignmentChart::canView());
+        $this->assertSame($expected, ProspectConfidenceRateChart::canView());
     }
 }

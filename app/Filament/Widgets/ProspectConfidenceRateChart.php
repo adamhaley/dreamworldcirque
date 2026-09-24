@@ -5,11 +5,11 @@ namespace App\Filament\Widgets;
 use App\Services\Prospects\ProspectDashboardMetrics;
 use Filament\Widgets\ChartWidget;
 
-class ProspectClassificationAlignmentChart extends ChartWidget
+class ProspectConfidenceRateChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     public static function canView(): bool
     {
@@ -18,20 +18,28 @@ class ProspectClassificationAlignmentChart extends ChartWidget
 
     public function getHeading(): string
     {
-        return 'AI classification alignment (last 30 days)';
+        return 'AI confidence (last 30 days)';
     }
 
     protected function getData(): array
     {
-        $metrics = app(ProspectDashboardMetrics::class)->dailyAlignmentRates(30);
+        $metrics = app(ProspectDashboardMetrics::class)->dailyNeedsHumanRates(30);
+
+        // Presented as its inverse: "confidence" reads naturally as higher-
+        // is-better, whereas showing the raw needs-human rate under that
+        // label would mean a rising line actually meant less confidence.
+        $confidenceRates = array_map(
+            fn (?int $needsHumanRate): ?int => $needsHumanRate === null ? null : 100 - $needsHumanRate,
+            $metrics['needs_human_rates'],
+        );
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Alignment rate',
-                    'data' => $metrics['alignment_rates'],
-                    'borderColor' => '#2d9d68',
-                    'backgroundColor' => 'rgba(45, 157, 104, 0.16)',
+                    'label' => 'Confidence rate',
+                    'data' => $confidenceRates,
+                    'borderColor' => '#d97706',
+                    'backgroundColor' => 'rgba(217, 119, 6, 0.14)',
                     'fill' => true,
                     'tension' => 0.35,
                     'spanGaps' => true,

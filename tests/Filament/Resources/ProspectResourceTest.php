@@ -57,32 +57,49 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
-    public function it_defaults_to_answer_reviews_then_human_reviews_then_newest_other_records(): void
+    public function it_defaults_to_newest_submitted_first_regardless_of_status(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
-        $newerAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subHour()]);
-        $olderAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subDays(2)]);
-        $newerHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()]);
-        $olderHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()->subDays(3)]);
-        $newerOther = Prospect::factory()->create([
+        $newestOther = Prospect::factory()->create([
             'status' => ProspectStatus::Replied,
-            'submitted_at' => now()->subMinutes(30),
+            'submitted_at' => now(),
         ]);
-        $olderOther = Prospect::factory()->create([
+        $newerAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subMinutes(30)]);
+        $newerHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()->subHour()]);
+        $olderAnswerReview = Prospect::factory()->draftReady()->create(['submitted_at' => now()->subDays(2)]);
+        $olderHumanReview = Prospect::factory()->pendingReview()->create(['submitted_at' => now()->subDays(3)]);
+        $oldestOther = Prospect::factory()->create([
             'status' => ProspectStatus::Unanswerable,
             'submitted_at' => now()->subDays(4),
         ]);
 
         Livewire::test(ManageProspects::class)
             ->assertCanSeeTableRecords([
+                $newestOther,
                 $newerAnswerReview,
-                $olderAnswerReview,
                 $newerHumanReview,
+                $olderAnswerReview,
                 $olderHumanReview,
-                $newerOther,
-                $olderOther,
+                $oldestOther,
             ], inOrder: true);
+    }
+
+    #[Test]
+    public function it_keeps_a_prospects_table_position_stable_across_a_status_change(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $newer = Prospect::factory()->pendingReview()->create(['submitted_at' => now()]);
+        $older = Prospect::factory()->pendingReview()->create(['submitted_at' => now()->subHour()]);
+        $originalSubmittedAt = $older->submitted_at;
+
+        $older->markStatus(ProspectStatus::Unanswerable, auth()->id());
+        $older->refresh();
+
+        Livewire::test(ManageProspects::class)
+            ->assertCanSeeTableRecords([$newer, $older], inOrder: true);
+        $this->assertEquals($originalSubmittedAt, $older->submitted_at);
     }
 
     #[Test]
