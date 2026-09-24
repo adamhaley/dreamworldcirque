@@ -4,8 +4,10 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -27,6 +29,14 @@ class LatestProspectsTable extends TableWidget
     {
         return $table
             ->heading('Latest leads')
+            ->headerActions([
+                Action::make('viewAll')
+                    ->label('All Prospects')
+                    ->link()
+                    ->icon(Heroicon::ArrowRight)
+                    ->iconPosition(IconPosition::After)
+                    ->url(ProspectResource::getUrl()),
+            ])
             // paginated(false): Filament's table normally wraps the query in
             // its own paginator (10-per-page by default), which silently
             // overrides a plain ->limit() on the query builder. Disabling
