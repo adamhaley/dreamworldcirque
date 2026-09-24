@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Prospects;
 
-use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Models\Prospect;
@@ -44,17 +43,7 @@ class ProspectResource extends Resource
     {
         return $table
             ->defaultSort(fn (Builder $query): Builder => self::applyDefaultTableSort($query))
-            ->modifyQueryUsing(fn ($query) => $query
-                ->where(function ($query): void {
-                    $query
-                        ->whereNull('classification')
-                        ->orWhere('classification', '!=', ProspectClassification::Spam->value);
-                })
-                ->where(function ($query): void {
-                    $query
-                        ->whereNull('human_classification')
-                        ->orWhere('human_classification', '!=', ProspectClassification::Spam->value);
-                }))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->notSpam())
             ->columns([
                 IconColumn::make('review_indicator')
                     ->label('')

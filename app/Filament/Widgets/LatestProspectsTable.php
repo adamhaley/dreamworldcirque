@@ -29,10 +29,12 @@ class LatestProspectsTable extends TableWidget
             // pagination makes it fetch the query as-is, respecting the
             // limit below.
             ->paginated(false)
-            // Same pure-descending-by-submitted_at ordering as the
-            // Prospects table itself, so this bird's-eye view matches
-            // what actually sits at the top of the real list.
+            // Same pure-descending-by-submitted_at ordering, and the same
+            // spam exclusion, as the Prospects table itself, so this
+            // bird's-eye view matches what actually sits at the top of the
+            // real list.
             ->query(fn (): Builder => Prospect::query()
+                ->notSpam()
                 ->orderByDesc('submitted_at')
                 ->orderByDesc('id')
                 ->limit(5))

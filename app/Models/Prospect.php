@@ -9,6 +9,8 @@ use App\Jobs\GenerateProspectReply;
 use App\Mail\ProspectReplyMail;
 use Database\Factories\ProspectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,6 +67,27 @@ class Prospect extends Model
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    /**
+     * Excludes anything either the AI or a human has called spam. Shared
+     * between the Prospects table and any other admin view listing
+     * prospects, so the definition of "spam" can't drift between them.
+     */
+    #[Scope]
+    protected function notSpam(Builder $query): void
+    {
+        $query
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('classification')
+                    ->orWhere('classification', '!=', ProspectClassification::Spam->value);
+            })
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('human_classification')
+                    ->orWhere('human_classification', '!=', ProspectClassification::Spam->value);
+            });
     }
 
     /**
