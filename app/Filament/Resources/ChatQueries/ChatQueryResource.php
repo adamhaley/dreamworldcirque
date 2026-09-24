@@ -70,6 +70,11 @@ class ChatQueryResource extends Resource
             ->recordActions([
                 DeleteAction::make(),
             ])
+            // Delete is the only row action here -- without this, clicking
+            // anywhere on the row would trigger it by default (Filament
+            // falls back to the first recordAction), which is a real
+            // footgun for a log table with no undo.
+            ->recordAction(null)
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

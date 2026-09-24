@@ -28,6 +28,24 @@ class PageResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_opens_the_edit_screen_when_a_row_is_clicked(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $page = Page::factory()->create();
+
+        $table = Livewire::test(ListPages::class)->instance()->getTable();
+
+        // recordUrl wins over recordAction whenever both are set (see
+        // Filament's own row-click template logic), so this is the one
+        // that actually determines what a row click does -- asserting only
+        // getRecordAction() here would have missed the real bug, where the
+        // 'view' row action's live-page link was silently auto-wired as
+        // recordUrl and took priority over the 'edit' recordAction below.
+        $this->assertSame('edit', $table->getRecordAction($page));
+        $this->assertStringContainsString('/admin/pages/'.$page->id.'/edit', (string) $table->getRecordUrl($page));
+    }
+
+    #[Test]
     public function it_lets_an_editor_update_page_content(): void
     {
         $this->actingAs(User::factory()->create());

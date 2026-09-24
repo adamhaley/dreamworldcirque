@@ -2,6 +2,7 @@
 
 namespace Tests\Models;
 
+use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Jobs\ClassifyProspect;
 use App\Jobs\GenerateProspectReply;
@@ -91,5 +92,30 @@ class ProspectTest extends TestCase
 
         Mail::assertNothingSent();
         $this->assertNull($prospect->refresh()->replied_at);
+    }
+
+    #[Test]
+    public function not_spam_excludes_ai_or_human_spam_classifications(): void
+    {
+        Queue::fake();
+
+        $humanSpam = Prospect::factory()->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => ProspectClassification::Spam,
+        ]);
+        $aiSpam = Prospect::factory()->create([
+            'classification' => ProspectClassification::Spam,
+            'human_classification' => null,
+        ]);
+        $needsReview = Prospect::factory()->create([
+            'classification' => ProspectClassification::NeedsHuman,
+            'human_classification' => null,
+        ]);
+
+        $visible = Prospect::query()->notSpam()->pluck('id');
+
+        $this->assertTrue($visible->contains($needsReview->id));
+        $this->assertFalse($visible->contains($humanSpam->id));
+        $this->assertFalse($visible->contains($aiSpam->id));
     }
 }
