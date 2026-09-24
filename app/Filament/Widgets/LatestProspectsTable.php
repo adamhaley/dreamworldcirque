@@ -2,7 +2,11 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Prospects\ProspectResource;
 use App\Models\Prospect;
+use Filament\Actions\ViewAction;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
@@ -42,6 +46,19 @@ class LatestProspectsTable extends TableWidget
                 TextColumn::make('submitted_at')->label('Date')->date(),
                 TextColumn::make('name')->label('Name')->placeholder('(not given)'),
                 TextColumn::make('status')->label('Status')->badge(),
+            ])
+            // Same review slide-over as the Prospects table's own row
+            // action, reusing its infolist directly -- a widget has no
+            // resource context of its own to auto-resolve it from, so the
+            // schema is passed explicitly.
+            ->recordActions([
+                ViewAction::make('review')
+                    ->label('Review')
+                    ->icon(Heroicon::Cog6Tooth)
+                    ->modalHeading(fn (Prospect $record): string => 'View '.($record->name ?: 'prospect'))
+                    ->modalCancelActionLabel('Close')
+                    ->slideOver()
+                    ->schema(fn (Schema $schema): array => ProspectResource::infolist($schema)->getComponents()),
             ]);
     }
 }
