@@ -9,7 +9,7 @@ class ProspectAlignmentBySubmissionChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     public static function canView(): bool
     {

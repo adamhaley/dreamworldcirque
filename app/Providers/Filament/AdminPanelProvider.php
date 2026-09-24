@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\ProspectAlignmentBySubmissionChart;
-use App\Filament\Widgets\ProspectAverageConfidenceChart;
 use App\Filament\Widgets\ProspectClassificationCompositionChart;
 use App\Filament\Widgets\ProspectNeedsHumanRateChart;
 use App\Models\SiteSetting;
@@ -71,7 +70,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 ProspectNeedsHumanRateChart::class,
-                ProspectAverageConfidenceChart::class,
                 ProspectAlignmentBySubmissionChart::class,
                 ProspectClassificationCompositionChart::class,
             ])

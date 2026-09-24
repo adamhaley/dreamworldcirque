@@ -77,29 +77,6 @@ class ProspectDashboardMetricsTest extends TestCase
     }
 
     #[Test]
-    public function it_computes_daily_average_confidence_including_needs_human(): void
-    {
-        Carbon::setTestNow('2026-09-20 12:00:00');
-
-        Prospect::factory()->create([
-            'classification' => ProspectClassification::Valid,
-            'classification_confidence' => 90,
-            'classified_at' => now(),
-        ]);
-        Prospect::factory()->create([
-            'classification' => ProspectClassification::NeedsHuman,
-            'classification_confidence' => 60,
-            'classified_at' => now(),
-        ]);
-
-        $metrics = app(ProspectDashboardMetrics::class)->dailyAverageConfidence(30);
-
-        $this->assertSame(75, end($metrics['average_confidence']));
-
-        Carbon::setTestNow();
-    }
-
-    #[Test]
     public function it_computes_monthly_alignment_rates_bucketed_by_submitted_at(): void
     {
         Carbon::setTestNow('2026-09-24 12:00:00');

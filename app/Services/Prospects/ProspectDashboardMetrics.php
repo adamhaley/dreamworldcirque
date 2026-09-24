@@ -43,30 +43,6 @@ class ProspectDashboardMetrics
     }
 
     /**
-     * Same classified_at bucketing as the needs-human rate, but a continuous
-     * average rather than a threshold -- every classified prospect carries a
-     * confidence score (including needs_human ones; the classifier still
-     * reports how sure it was even when it chose to defer), so this doesn't
-     * need to exclude anything.
-     *
-     * @return array{labels: list<string>, average_confidence: list<int|null>}
-     */
-    public function dailyAverageConfidence(int $days): array
-    {
-        $prospectsByDay = $this->classifiedProspectsQuery()
-            ->get()
-            ->groupBy(fn (Prospect $prospect): string => $prospect->classified_at?->toDateString() ?? '');
-
-        return $this->dailySeries($days, $prospectsByDay, 'average_confidence', function (Collection $prospects): ?int {
-            if ($prospects->isEmpty()) {
-                return null;
-            }
-
-            return (int) round($prospects->avg('classification_confidence'));
-        });
-    }
-
-    /**
      * Bucketed by submitted_at (when the lead came in), not reviewed_at
      * (when a human happened to get to it) -- classification and review for
      * the legacy backfill all happened in a couple of batch days, so a
@@ -150,7 +126,7 @@ class ProspectDashboardMetrics
     private function classifiedProspectsQuery(): Builder
     {
         return Prospect::query()
-            ->select(['id', 'classification', 'classification_confidence', 'classified_at'])
+            ->select(['id', 'classification', 'classified_at'])
             ->whereNotNull('classified_at');
     }
 

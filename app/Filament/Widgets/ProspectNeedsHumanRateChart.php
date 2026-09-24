@@ -9,7 +9,7 @@ class ProspectNeedsHumanRateChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     public static function canView(): bool
     {
@@ -30,8 +30,8 @@ class ProspectNeedsHumanRateChart extends ChartWidget
                 [
                     'label' => 'Needs-human rate',
                     'data' => $metrics['needs_human_rates'],
-                    'borderColor' => '#2d9d68',
-                    'backgroundColor' => 'rgba(45, 157, 104, 0.16)',
+                    'borderColor' => '#d97706',
+                    'backgroundColor' => 'rgba(217, 119, 6, 0.14)',
                     'fill' => true,
                     'tension' => 0.35,
                     'spanGaps' => true,

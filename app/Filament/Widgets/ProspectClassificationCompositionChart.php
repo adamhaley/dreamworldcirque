@@ -9,7 +9,7 @@ class ProspectClassificationCompositionChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     public static function canView(): bool
     {
@@ -30,8 +30,8 @@ class ProspectClassificationCompositionChart extends ChartWidget
                 [
                     'label' => 'Valid',
                     'data' => $metrics['valid_rates'],
-                    'borderColor' => '#2d9d68',
-                    'backgroundColor' => 'rgba(45, 157, 104, 0.16)',
+                    'borderColor' => '#2f6fa3',
+                    'backgroundColor' => 'rgba(47, 111, 163, 0.14)',
                     'fill' => false,
                     'tension' => 0.35,
                     'spanGaps' => true,
