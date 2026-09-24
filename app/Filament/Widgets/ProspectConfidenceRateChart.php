@@ -18,7 +18,7 @@ class ProspectConfidenceRateChart extends ChartWidget
 
     public function getHeading(): string
     {
-        return 'AI confidence rate (last 30 days)';
+        return 'AI confidence (last 30 days)';
     }
 
     protected function getData(): array
