@@ -5,7 +5,7 @@ namespace App\Filament\Widgets;
 use App\Services\Prospects\ProspectDashboardMetrics;
 use Filament\Widgets\ChartWidget;
 
-class ProspectClassificationAlignmentChart extends ChartWidget
+class ProspectNeedsHumanRateChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
@@ -18,18 +18,18 @@ class ProspectClassificationAlignmentChart extends ChartWidget
 
     public function getHeading(): string
     {
-        return 'AI classification alignment (last 30 days)';
+        return 'AI needs-human rate (last 30 days)';
     }
 
     protected function getData(): array
     {
-        $metrics = app(ProspectDashboardMetrics::class)->dailyAlignmentRates(30);
+        $metrics = app(ProspectDashboardMetrics::class)->dailyNeedsHumanRates(30);
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Alignment rate',
-                    'data' => $metrics['alignment_rates'],
+                    'label' => 'Needs-human rate',
+                    'data' => $metrics['needs_human_rates'],
                     'borderColor' => '#2d9d68',
                     'backgroundColor' => 'rgba(45, 157, 104, 0.16)',
                     'fill' => true,

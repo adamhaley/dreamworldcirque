@@ -11,69 +11,66 @@ use Illuminate\Support\Collection;
 class ProspectDashboardMetrics
 {
     /**
-     * @return array{labels: list<string>, alignment_rates: list<int|null>}
+     * Bucketed by classified_at, not reviewed_at: deferring to a human is
+     * purely an AI-side decision made the moment it classifies a prospect,
+     * independent of whenever a human later gets around to reviewing it. A
+     * reviewed_at bucketing would smear the signal across whatever the
+     * review backlog happens to look like that week instead of showing when
+     * the AI actually started deferring more.
+     *
+     * @return array{labels: list<string>, needs_human_rates: list<int|null>}
      */
-    public function dailyAlignmentRates(int $days): array
+    public function dailyNeedsHumanRates(int $days): array
     {
         $start = now()->subDays($days - 1)->startOfDay();
         $end = now()->endOfDay();
 
-        $prospectsByDay = $this->reviewedProspectsQuery()
-            ->whereBetween('reviewed_at', [$start, $end])
+        $prospectsByDay = $this->classifiedProspectsQuery()
+            ->whereBetween('classified_at', [$start, $end])
             ->get()
-            ->groupBy(fn (Prospect $prospect): string => $prospect->reviewed_at?->toDateString() ?? '');
+            ->groupBy(fn (Prospect $prospect): string => $prospect->classified_at?->toDateString() ?? '');
 
         $labels = [];
-        $alignmentRates = [];
+        $needsHumanRates = [];
 
         foreach (CarbonPeriod::create($start, '1 day', $end) as $date) {
             $prospects = $prospectsByDay->get($date->toDateString(), collect());
 
             $labels[] = $date->format('M j');
-            $alignmentRates[] = $this->alignmentRate($prospects);
+            $needsHumanRates[] = $this->needsHumanRate($prospects);
         }
 
         return [
             'labels' => $labels,
-            'alignment_rates' => $alignmentRates,
+            'needs_human_rates' => $needsHumanRates,
         ];
     }
 
     /**
      * @return Builder<Prospect>
      */
-    private function reviewedProspectsQuery(): Builder
+    private function classifiedProspectsQuery(): Builder
     {
         return Prospect::query()
-            ->select(['id', 'classification', 'human_classification', 'reviewed_at'])
-            ->whereNotNull('reviewed_at')
-            ->whereNotNull('human_classification');
+            ->select(['id', 'classification', 'classified_at'])
+            ->whereNotNull('classified_at');
     }
 
     /**
-     * A NeedsHuman classification isn't a guess to be scored against --
-     * it's the AI correctly deferring rather than committing to a
-     * definitive call it isn't confident in (see ProspectClassifier's own
-     * "be conservative" instruction). Counting it as a misalignment would
-     * penalize exactly the behavior that instruction asks for, so those
-     * rows are excluded from both the numerator and the denominator
-     * rather than treated as wrong.
-     *
      * @param  Collection<int, Prospect>  $prospects
      */
-    private function alignmentRate(Collection $prospects): ?int
+    private function needsHumanRate(Collection $prospects): ?int
     {
-        $scored = $prospects->filter(fn (Prospect $prospect): bool => $prospect->classification !== ProspectClassification::NeedsHuman);
-        $scoredCount = $scored->count();
+        $count = $prospects->count();
 
-        if ($scoredCount === 0) {
+        if ($count === 0) {
             return null;
         }
 
-        $alignments = $scored
-            ->filter(fn (Prospect $prospect): bool => $prospect->classification === $prospect->human_classification)
+        $needsHuman = $prospects
+            ->filter(fn (Prospect $prospect): bool => $prospect->classification === ProspectClassification::NeedsHuman)
             ->count();
 
-        return (int) round(($alignments / $scoredCount) * 100);
+        return (int) round(($needsHuman / $count) * 100);
     }
 }
