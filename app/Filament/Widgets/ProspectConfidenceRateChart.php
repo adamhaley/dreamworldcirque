@@ -5,7 +5,7 @@ namespace App\Filament\Widgets;
 use App\Services\Prospects\ProspectDashboardMetrics;
 use Filament\Widgets\ChartWidget;
 
-class ProspectNeedsHumanRateChart extends ChartWidget
+class ProspectConfidenceRateChart extends ChartWidget
 {
     protected static bool $isLazy = false;
 
@@ -18,18 +18,26 @@ class ProspectNeedsHumanRateChart extends ChartWidget
 
     public function getHeading(): string
     {
-        return 'AI needs-human rate (last 30 days)';
+        return 'AI confidence rate (last 30 days)';
     }
 
     protected function getData(): array
     {
         $metrics = app(ProspectDashboardMetrics::class)->dailyNeedsHumanRates(30);
 
+        // Presented as its inverse: "confidence" reads naturally as higher-
+        // is-better, whereas showing the raw needs-human rate under that
+        // label would mean a rising line actually meant less confidence.
+        $confidenceRates = array_map(
+            fn (?int $needsHumanRate): ?int => $needsHumanRate === null ? null : 100 - $needsHumanRate,
+            $metrics['needs_human_rates'],
+        );
+
         return [
             'datasets' => [
                 [
-                    'label' => 'Needs-human rate',
-                    'data' => $metrics['needs_human_rates'],
+                    'label' => 'Confidence rate',
+                    'data' => $confidenceRates,
                     'borderColor' => '#d97706',
                     'backgroundColor' => 'rgba(217, 119, 6, 0.14)',
                     'fill' => true,

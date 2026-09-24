@@ -5,7 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\ProspectAlignmentBySubmissionChart;
 use App\Filament\Widgets\ProspectClassificationCompositionChart;
-use App\Filament\Widgets\ProspectNeedsHumanRateChart;
+use App\Filament\Widgets\ProspectConfidenceRateChart;
 use App\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -69,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 AccountWidget::class,
-                ProspectNeedsHumanRateChart::class,
+                ProspectConfidenceRateChart::class,
                 ProspectAlignmentBySubmissionChart::class,
                 ProspectClassificationCompositionChart::class,
             ])
