@@ -3,8 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Widgets\LatestProspectsTable;
 use App\Filament\Widgets\ProspectAlignmentBySubmissionChart;
-use App\Filament\Widgets\ProspectClassificationCompositionChart;
 use App\Filament\Widgets\ProspectConfidenceRateChart;
 use App\Models\SiteSetting;
 use Filament\Http\Middleware\Authenticate;
@@ -69,9 +69,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 AccountWidget::class,
+                LatestProspectsTable::class,
                 ProspectConfidenceRateChart::class,
                 ProspectAlignmentBySubmissionChart::class,
-                ProspectClassificationCompositionChart::class,
             ])
             // Filament renders its own separately-compiled assets and does
             // not load the app's Vite bundle by default -- without this,
