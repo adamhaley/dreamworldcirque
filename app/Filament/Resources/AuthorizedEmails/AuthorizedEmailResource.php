@@ -66,7 +66,8 @@ class AuthorizedEmailResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
-            ]);
+            ])
+            ->recordAction('edit');
     }
 
     public static function getPages(): array

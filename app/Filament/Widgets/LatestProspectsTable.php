@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -60,7 +61,11 @@ class LatestProspectsTable extends TableWidget
             // Same review slide-over as the Prospects table's own row
             // action, reusing its infolist directly -- a widget has no
             // resource context of its own to auto-resolve it from, so the
-            // schema is passed explicitly.
+            // schema is passed explicitly. Same front-of-row position, and
+            // clicking anywhere in the row opens it too, matching the
+            // Prospects table itself.
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns)
+            ->recordAction('review')
             ->recordActions([
                 ViewAction::make('review')
                     ->label('Review')

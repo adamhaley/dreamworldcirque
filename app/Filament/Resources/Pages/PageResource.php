@@ -201,13 +201,27 @@ class PageResource extends Resource
                 TernaryFilter::make('is_published')->label('Published'),
             ])
             ->recordActions([
-                Action::make('view')
+                // Deliberately not named 'view' -- Filament's ListRecords
+                // base page auto-detects any action literally named 'view'
+                // or 'edit' that has a ->url() and silently wires it up as
+                // the table's default recordUrl, which takes precedence
+                // over ->recordAction() below entirely. That collision is
+                // exactly why row clicks were opening this live-page link
+                // instead of the edit screen.
+                Action::make('viewLive')
+                    ->label('View')
                     ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                     ->color('gray')
                     ->url(fn (Page $record): string => $record->url(), shouldOpenInNewTab: true),
                 EditAction::make(),
                 DeleteAction::make(),
-            ]);
+            ])
+            // Belt-and-suspenders: Filament's ListRecords base page already
+            // defaults recordUrl to this resource's edit page once nothing
+            // is named 'view'/'edit' with a competing ->url() (see the
+            // comment above), but this keeps the intent explicit rather
+            // than relying on that fallback chain.
+            ->recordAction('edit');
     }
 
     public static function getRelations(): array

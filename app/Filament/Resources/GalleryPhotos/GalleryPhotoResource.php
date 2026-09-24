@@ -68,7 +68,8 @@ class GalleryPhotoResource extends Resource
             ->recordActions([
                 EditAction::make()->slideOver(),
                 DeleteAction::make(),
-            ]);
+            ])
+            ->recordAction('edit');
     }
 
     public static function getPages(): array

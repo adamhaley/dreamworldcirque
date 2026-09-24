@@ -119,7 +119,8 @@ class ProspectResource extends Resource
                     ->modalCancelActionLabel('Close')
                     ->slideOver(),
             ])
-            ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
+            ->recordActionsPosition(RecordActionsPosition::BeforeColumns)
+            ->recordAction('review');
     }
 
     // Pure descending by submitted_at, no status-based bucketing. A row's

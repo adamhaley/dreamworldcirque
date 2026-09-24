@@ -37,6 +37,17 @@ class ChatQueryResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_delete_when_a_row_is_clicked(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $query = ChatQuery::factory()->create();
+
+        $table = Livewire::test(ManageChatQueries::class)->instance()->getTable();
+
+        $this->assertNull($table->getRecordAction($query));
+    }
+
+    #[Test]
     public function it_filters_by_outcome(): void
     {
         $this->actingAs(User::factory()->create());
