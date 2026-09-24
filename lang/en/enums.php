@@ -29,7 +29,7 @@ return [
     ],
     ProspectStatus::class => [
         'draft_generating' => 'Drafting reply…',
-        'draft_ready' => 'Draft ready for review',
+        'draft_ready' => 'Draft ready',
         'pending_classification' => 'Pending classification',
         'pending_review' => 'Pending review',
         'replied' => 'Replied',
