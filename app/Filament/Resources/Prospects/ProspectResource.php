@@ -133,13 +133,16 @@ class ProspectResource extends Resource
             ->recordActionsPosition(RecordActionsPosition::BeforeColumns);
     }
 
+    // Pure descending by submitted_at, no status-based bucketing. A row's
+    // position now depends only on when it came in, never on its current
+    // status, so reviewing/classifying a prospect can no longer jump it to a
+    // different spot in the table -- it stays put. In practice this still
+    // surfaces prospects needing review near the top: the newest leads are
+    // the ones most likely not yet processed, while older ones have already
+    // worked their way to Replied/Spam/Unanswerable.
     private static function applyDefaultTableSort(Builder $query): Builder
     {
         return $query
-            ->orderByRaw('case when prospects.status = ? then 0 when prospects.status = ? then 1 else 2 end', [
-                ProspectStatus::DraftReady->value,
-                ProspectStatus::PendingReview->value,
-            ])
             ->orderByDesc('prospects.submitted_at')
             ->orderByDesc('prospects.id');
     }
