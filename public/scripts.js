@@ -642,6 +642,7 @@
     form.innerHTML =
       '<input type="text" class="chat-lead-field" name="name" placeholder="Your name" required />' +
       '<input type="email" class="chat-lead-field" name="email" placeholder="Your email" required />' +
+      '<input type="tel" class="chat-lead-field" name="phone" placeholder="Your phone (optional)" />' +
       // Hidden from real visitors via CSS (see .chat-lead-form input[name="website"]
       // in styles.css) -- a bot filling every field it sees will fill this
       // one too, which is exactly what marks it as a bot server-side.
@@ -660,6 +661,7 @@
       postJson('/chat/lead', {
         name: form.name.value,
         email: form.email.value,
+        phone: form.phone.value,
         question: question,
         website: form.website.value,
       })

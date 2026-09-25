@@ -25,6 +25,7 @@ class StoreChatLeadRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
             'question' => ['required', 'string', 'max:500'],
             // Honeypot: a real visitor never sees or fills this field (hidden
             // via CSS in the widget markup), so any non-empty value here is a

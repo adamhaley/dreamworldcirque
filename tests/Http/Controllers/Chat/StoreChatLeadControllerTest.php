@@ -38,6 +38,24 @@ class StoreChatLeadControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_stores_an_optional_phone_number(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/chat/lead', [
+            'name' => 'Jo Riggs',
+            'email' => 'jo@example.com',
+            'phone' => '555-123-4567',
+            'question' => 'Do you do fire performances indoors?',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas(Prospect::class, [
+            'email' => 'jo@example.com',
+            'phone' => '555-123-4567',
+        ]);
+    }
+
+    #[Test]
     public function it_dispatches_the_classification_job(): void
     {
         Queue::fake();
