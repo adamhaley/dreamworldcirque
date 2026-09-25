@@ -1522,21 +1522,6 @@ a {
   opacity: 0.5;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .masthead-video {
-    display: none;
-  }
-
-  /* The video is the only thing that ever painted the poster image -- hiding
-     it with no replacement left reduced-motion visitors with just the bare
-     gradient background and no hero image at all. */
-  .gradient-masthead {
-    background-image: url('/assets/video/hero-poster.jpg');
-    background-size: cover;
-    background-position: center;
-  }
-}
-
 .gradient-masthead .eyebrow {
   color: rgba(255, 255, 255, 0.85);
   margin-bottom: 3rem;
