@@ -1123,6 +1123,13 @@ a {
   border: 0;
   background: transparent;
   color: #f5f5f7;
+  /* Nothing in here is meant to be selected -- without this, clicking the
+     nav buttons a little off-center (easy to do while clicking through
+     several photos in a row) can land on the caption text instead and
+     trigger the browser's native double-click-to-select instead of
+     advancing the image. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .gallery-modal::backdrop {
