@@ -23,10 +23,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
-    <title>{{ $page->meta_title ?: $page->title.' | Dream World Cirque' }}</title>
+    @php
+      $ogTitle = $page->meta_title ?: $page->title.' | Dream World Cirque';
+      $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
+      $ogImage = $page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg');
+    @endphp
+    <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
     <meta name="description" content="{{ $page->meta_description }}" />
     @endif
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Dream World Cirque" />
+    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:title" content="{{ $ogTitle }}" />
+    <meta property="og:description" content="{{ $ogDescription }}" />
+    <meta property="og:image" content="{{ $ogImage }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ $ogTitle }}" />
+    <meta name="twitter:description" content="{{ $ogDescription }}" />
+    <meta name="twitter:image" content="{{ $ogImage }}" />
     @stack('head')
     <link rel="stylesheet" href="/styles.css?v={{ filemtime(public_path('styles.css')) }}" />
     @if ($settings->accent_color)
