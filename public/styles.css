@@ -1647,11 +1647,19 @@ a {
 .image-masthead {
   position: relative;
   overflow: hidden;
-  text-align: center;
+  /* Trying a shorter, right-anchored hero (was centered at
+     max(42rem, 85vh)) -- asymmetric alignment per Adam's usual
+     preference, closer to ahmedia.ai's subpage hero. The rem floor had
+     to come down too, not just the vh: 42rem (672px) alone exceeded
+     70vh on most real viewport heights, so it silently overrode the
+     new shorter target and the hero never actually looked shorter.
+     Revert this, the .container margin below, and the button-row
+     justify-content to restore the original centered version. */
+  text-align: right;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: max(42rem, 85vh);
+  min-height: max(26rem, 70vh);
   padding: calc(var(--section-space) * 1.5) 0 var(--section-space);
   color: #fff;
 }
@@ -1659,6 +1667,7 @@ a {
 .image-masthead .container {
   position: relative;
   z-index: 1;
+  margin: 0 var(--gutter) 0 auto;
 }
 
 .masthead-image {
@@ -1693,7 +1702,7 @@ a {
 }
 
 .image-masthead .button-row {
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .image-masthead .button-primary {
@@ -1874,8 +1883,24 @@ a {
   transition: fill 180ms ease;
 }
 
+/* White only reads against the home hero's video background, which always
+   fills the viewport. Subpage heroes are shorter (see .image-masthead's
+   70vh), so the arrow's fixed position can sit below the hero on the
+   plain white page background by the time it's visible -- :has() lets this
+   stay a page-type check without threading masthead type into the layout.
+   Accent at rest here, so the hover state below is flipped to gray instead
+   of the home page's accent -- same color for both states would erase the
+   hover feedback entirely. */
+body:has(.image-masthead) .scroll-down-link path {
+  fill: var(--color-accent);
+}
+
 .scroll-down-link:hover path {
   fill: var(--color-accent);
+}
+
+body:has(.image-masthead) .scroll-down-link:hover path {
+  fill: var(--color-muted);
 }
 
 .chat-container {
