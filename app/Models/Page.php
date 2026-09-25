@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'parent_id', 'title', 'slug', 'template', 'sort_order', 'is_published', 'show_in_nav', 'nav_anchor',
-    'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image',
+    'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image', 'og_image',
     'section_eyebrow', 'section_heading', 'body', 'bullets', 'buttons', 'circle_image', 'circle_image_alt',
     'quote_id', 'card_excerpt', 'cta_eyebrow', 'cta_heading', 'cta_button_label',
 ])]

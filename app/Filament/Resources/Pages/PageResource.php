@@ -165,6 +165,15 @@ class PageResource extends Resource
             Section::make('Search engines')->collapsed()->schema([
                 TextInput::make('meta_title')->placeholder('Defaults to "Page title | Dream World Cirque"'),
                 Textarea::make('meta_description')->rows(2)->maxLength(500),
+                FileUpload::make('og_image')
+                    ->label('Social sharing image')
+                    ->helperText('Shown when this page is shared on Facebook, LinkedIn, etc. Recommended 1200×630 — falls back to the hero image, then a site default, when left empty.')
+                    ->image()
+                    ->imageEditor()
+                    ->imageEditorAspectRatios(['1200:630'])
+                    ->disk('public')
+                    ->directory('pages')
+                    ->visibility('public'),
                 TextInput::make('nav_anchor')
                     ->label('Homepage navigation anchor')
                     ->helperText('When set, this page\'s nav link jumps to that homepage section (e.g. #about) instead of opening the page.')
