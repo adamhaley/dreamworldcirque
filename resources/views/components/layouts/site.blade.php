@@ -28,7 +28,7 @@
     <meta name="description" content="{{ $page->meta_description }}" />
     @endif
     @stack('head')
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v={{ filemtime(public_path('styles.css')) }}" />
     @if ($settings->accent_color)
     {{-- Overrides the pink baked into styles.css's :root -- kept as a tiny
          inline block rather than templating the whole stylesheet, since this
@@ -97,6 +97,6 @@
       </div>
     </div>
     @stack('scripts')
-    <script src="/scripts.js"></script>
+    <script src="/scripts.js?v={{ filemtime(public_path('scripts.js')) }}"></script>
   </body>
 </html>
