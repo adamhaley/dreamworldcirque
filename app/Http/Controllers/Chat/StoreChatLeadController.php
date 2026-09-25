@@ -16,6 +16,7 @@ class StoreChatLeadController extends Controller
         $prospect = $intake->record('chatbot', 'Chat Fallback', new ProspectIntakeData(
             name: $request->string('name')->trim()->toString(),
             email: $request->string('email')->trim()->toString(),
+            phone: $request->filled('phone') ? $request->string('phone')->trim()->toString() : null,
             message: $request->string('question')->trim()->toString(),
             rawPayload: ['unmatched_question' => $request->string('question')->trim()->toString()],
         ));

@@ -1123,6 +1123,13 @@ a {
   border: 0;
   background: transparent;
   color: #f5f5f7;
+  /* Nothing in here is meant to be selected -- without this, clicking the
+     nav buttons a little off-center (easy to do while clicking through
+     several photos in a row) can land on the caption text instead and
+     trigger the browser's native double-click-to-select instead of
+     advancing the image. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .gallery-modal::backdrop {
@@ -1518,6 +1525,15 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .masthead-video {
     display: none;
+  }
+
+  /* The video is the only thing that ever painted the poster image -- hiding
+     it with no replacement left reduced-motion visitors with just the bare
+     gradient background and no hero image at all. */
+  .gradient-masthead {
+    background-image: url('/assets/video/hero-poster.jpg');
+    background-size: cover;
+    background-position: center;
   }
 }
 
