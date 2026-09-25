@@ -155,6 +155,36 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_prefers_the_dedicated_social_sharing_image_when_set(): void
+    {
+        Page::factory()->home()->create(['og_image' => 'pages/share.jpg', 'hero_image' => 'pages/hero.jpg']);
+
+        $response = $this->get('/');
+
+        $response->assertSee('<meta property="og:image" content="'.asset('storage/pages/share.jpg').'" />', escape: false);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_hero_image_when_no_social_sharing_image_is_set(): void
+    {
+        Page::factory()->create(['slug' => 'example', 'hero_image' => 'pages/hero.jpg']);
+
+        $response = $this->get('/example/');
+
+        $response->assertSee('<meta property="og:image" content="'.asset('storage/pages/hero.jpg').'" />', escape: false);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_site_default_image_when_neither_is_set(): void
+    {
+        Page::factory()->home()->create();
+
+        $response = $this->get('/');
+
+        $response->assertSee('<meta property="og:image" content="'.asset('assets/video/hero-poster.jpg').'" />', escape: false);
+    }
+
+    #[Test]
     public function it_overrides_the_accent_color_when_one_is_set(): void
     {
         Page::factory()->home()->create();

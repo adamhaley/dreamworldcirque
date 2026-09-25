@@ -26,7 +26,9 @@
     @php
       $ogTitle = $page->meta_title ?: $page->title.' | Dream World Cirque';
       $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
-      $ogImage = $page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg');
+      $ogImage = $page->og_image
+          ? asset('storage/'.$page->og_image)
+          : ($page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg'));
     @endphp
     <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
