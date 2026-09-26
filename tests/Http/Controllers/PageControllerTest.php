@@ -9,6 +9,7 @@ use App\Models\GalleryPhoto;
 use App\Models\Page;
 use App\Models\Quote;
 use App\Models\SiteSetting;
+use App\Models\Spotlight;
 use App\Models\User;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -54,6 +55,97 @@ class PageControllerTest extends TestCase
             ->assertSee('Absolutely magical')
             ->assertSee('Silks at sunset')
             ->assertSee('<a class="carousel-slide-link" href="/gallery/" aria-label="View full gallery">', escape: false);
+    }
+
+    #[Test]
+    #[DataProvider('plainTextBodyTemplates')]
+    public function it_preserves_page_body_line_breaks_and_escapes_html(PageTemplate $template): void
+    {
+        Page::factory()->template($template)->create([
+            'slug' => 'example',
+            'section_heading' => 'Our performances',
+            'body' => "First & second\nNext line\r\n\r\n<script>alert(1)</script>",
+        ]);
+
+        $response = $this->get('/example/');
+
+        $response->assertOk()
+            ->assertSee("First &amp; second<br />\nNext line<br />\r\n<br />\r\n&lt;script&gt;alert(1)&lt;/script&gt;", escape: false)
+            ->assertDontSee('<script>alert(1)</script>', escape: false);
+    }
+
+    public static function plainTextBodyTemplates(): Generator
+    {
+        yield 'standard' => [PageTemplate::Standard];
+        yield 'service' => [PageTemplate::Service];
+        yield 'services index' => [PageTemplate::ServicesIndex];
+        yield 'gallery' => [PageTemplate::Gallery];
+        yield 'contact' => [PageTemplate::Contact];
+    }
+
+    #[Test]
+    public function it_preserves_line_breaks_and_escapes_html_in_homepage_content(): void
+    {
+        Page::factory()->home()->create();
+        Spotlight::factory()->create(['body' => "Spotlight\n<script>alert(1)</script>"]);
+        Quote::factory()->create(['body' => "Quote\r\n<script>alert(1)</script>"]);
+        $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
+        Page::factory()->template(PageTemplate::Service)->create([
+            'parent_id' => $services->id,
+            'card_excerpt' => "Service\n\n<script>alert(1)</script>",
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertOk()
+            ->assertSee("Spotlight<br />\n&lt;script&gt;alert(1)&lt;/script&gt;", escape: false)
+            ->assertSee("Quote<br />\r\n&lt;script&gt;alert(1)&lt;/script&gt;", escape: false)
+            ->assertSee("Service<br />\n<br />\n&lt;script&gt;alert(1)&lt;/script&gt;", escape: false)
+            ->assertDontSee('<script>alert(1)</script>', escape: false);
+    }
+
+    #[Test]
+    #[DataProvider('ctaTemplates')]
+    public function it_includes_the_shared_quote_form_beneath_subpage_ctas(PageTemplate $template): void
+    {
+        Page::factory()->template($template)->create([
+            'slug' => 'example',
+            'cta_heading' => 'Plan your event',
+            'cta_button_label' => 'Get in touch',
+        ]);
+
+        $response = $this->get('/example/');
+
+        $response->assertOk()
+            ->assertSee('Get in touch')
+            ->assertSee('data-contact-reveal', escape: false)
+            ->assertSee('aria-expanded="false" aria-controls="cta-contact-form"', escape: false)
+            ->assertSee('<div id="cta-contact-form" class="scroll-target" hidden>', escape: false)
+            ->assertSee('name="form_type" value="Get_A_Quote Form Submission"', escape: false)
+            ->assertSee('class="surface-card contact-form" action="'.route('contact.store').'"', escape: false);
+    }
+
+    public static function ctaTemplates(): Generator
+    {
+        yield 'standard' => [PageTemplate::Standard];
+        yield 'service' => [PageTemplate::Service];
+        yield 'services index' => [PageTemplate::ServicesIndex];
+        yield 'gallery' => [PageTemplate::Gallery];
+        yield 'faq' => [PageTemplate::Faq];
+    }
+
+    #[Test]
+    public function it_omits_the_cta_form_when_the_page_has_no_cta(): void
+    {
+        Page::factory()->template(PageTemplate::Standard)->create([
+            'slug' => 'example',
+            'cta_heading' => null,
+        ]);
+
+        $this->get('/example/')
+            ->assertOk()
+            ->assertDontSee('data-contact-reveal', escape: false)
+            ->assertDontSee('class="surface-card contact-form"', escape: false);
     }
 
     #[Test]

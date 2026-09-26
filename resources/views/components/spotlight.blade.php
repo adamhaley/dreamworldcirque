@@ -12,7 +12,7 @@
       @endif
       <h2 class="section-title">{{ $heading }}</h2>
       @if ($body)
-      <p class="section-copy">{{ $body }}</p>
+      <p class="section-copy">{!! nl2br(e($body)) !!}</p>
       @endif
       @if (filled($bullets))
       <ul class="bullet-list">@foreach ($bullets as $bullet)<li>{{ $bullet }}</li>@endforeach</ul>

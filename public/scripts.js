@@ -912,6 +912,26 @@
 })();
 
 (function () {
+  document.querySelectorAll('[data-contact-reveal]').forEach(function (trigger) {
+    const panel = document.getElementById(trigger.getAttribute('aria-controls'));
+    if (!panel) return;
+
+    trigger.addEventListener('click', function (event) {
+      event.preventDefault();
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+
+      const firstField = panel.querySelector('input[name="name"]:not(:disabled)');
+      if (firstField) firstField.focus({ preventScroll: true });
+      panel.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        block: 'start',
+      });
+    });
+  });
+})();
+
+(function () {
   const forms = document.querySelectorAll('.contact-form');
   if (!forms.length) return;
 
