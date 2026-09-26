@@ -1245,6 +1245,16 @@ a {
   font-size: clamp(1.3rem, 5.5vw, 3rem);
   line-height: 1.1;
   letter-spacing: -0.03em;
+  /* This heading-scale size reads great for a punchy one-liner, but a couple
+     of Jena's real client quotes are full paragraphs (500-700+ characters) --
+     at this font size that wraps into dozens of lines and blows out the
+     carousel's height on those slides. Clamping to 5 lines with an ellipsis
+     keeps every slide within a similar, bounded height regardless of quote
+     length; short quotes never reach the cap, so they're unaffected. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
 }
 
 .quote-attribution {
