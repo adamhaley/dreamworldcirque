@@ -30,5 +30,14 @@ Route::get('/robots.txt', fn () => response(
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
+// The legacy Adobe Muse site used flat .html filenames -- these keep any
+// existing search rankings, bookmarks, and external backlinks working
+// instead of 404ing once dreamworldcirque.com pointed here.
+Route::permanentRedirect('/about-us.html', '/about/');
+Route::permanentRedirect('/get-a-quote.html', '/contact/');
+Route::permanentRedirect('/showcase.html', '/gallery/');
+Route::permanentRedirect('/video.html', '/');
+Route::permanentRedirect('/index.html', '/');
+
 Route::get('/', PageController::class)->name('page.home');
 Route::fallback(PageController::class)->name('page.show');
