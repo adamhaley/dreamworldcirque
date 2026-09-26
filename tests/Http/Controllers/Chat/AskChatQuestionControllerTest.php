@@ -68,6 +68,38 @@ class AskChatQuestionControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_answers_directly_when_only_one_faq_qualifies(): void
+    {
+        $content = require database_path('seeders/data/content.php');
+        $keywords = require database_path('seeders/data/faq-keywords.php');
+
+        foreach ($content['faq'] as $index => $item) {
+            FaqItem::factory()->create([
+                ...$item,
+                'keywords' => $keywords[$item['question']] ?? null,
+                'sort_order' => $index,
+            ]);
+        }
+
+        $faq = FaqItem::query()
+            ->where('question', 'Do you provide aerial rigging and specialty performance equipment?')
+            ->firstOrFail();
+
+        $this->postJson('/chat/ask', ['question' => 'do you do aerial silks?'])
+            ->assertOk()
+            ->assertJsonPath('outcome', 'confident')
+            ->assertJsonCount(1, 'matches')
+            ->assertJsonPath('matches.0.id', $faq->id)
+            ->assertJsonPath('matches.0.answer', $faq->answer);
+
+        $this->assertDatabaseHas('chat_queries', [
+            'question' => 'do you do aerial silks?',
+            'outcome' => FaqMatchOutcome::Confident->value,
+            'matched_faq_id' => $faq->id,
+        ]);
+    }
+
+    #[Test]
     public function it_returns_ambiguous_options_when_scores_are_close(): void
     {
         FaqItem::factory()->create([

@@ -129,7 +129,10 @@ class FaqMatchingService
             $options[] = new FaqMatch($items[$id], $score);
         }
 
-        return new FaqMatchResult(FaqMatchOutcome::Ambiguous, $options);
+        return new FaqMatchResult(
+            count($options) === 1 ? FaqMatchOutcome::Confident : FaqMatchOutcome::Ambiguous,
+            $options,
+        );
     }
 
     /**

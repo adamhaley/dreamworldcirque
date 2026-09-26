@@ -977,6 +977,33 @@ a {
   opacity: 0;
 }
 
+#quotes-carousel .carousel-track {
+  display: grid;
+  align-items: center;
+}
+
+/* Keep every quote in the same grid cell so the tallest sets the height. */
+#quotes-carousel .carousel-item {
+  display: block;
+  grid-area: 1 / 1;
+  min-width: 0;
+  float: none;
+  margin-right: 0;
+  visibility: hidden;
+}
+
+#quotes-carousel .carousel-item.active,
+#quotes-carousel .carousel-item-next,
+#quotes-carousel .carousel-item-prev {
+  visibility: visible;
+}
+
+#quotes-carousel .quote-text {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
 .carousel-media {
   margin: 0;
   min-height: var(--carousel-media-height);
