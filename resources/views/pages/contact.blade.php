@@ -16,7 +16,7 @@
       </x-contact-grid>
       <h3 id="quote" class="scroll-target contact-form-heading">{{ $page->section_heading }}</h3>
       @if ($page->body)
-      <p class="section-copy contact-form-copy">{{ $page->body }}</p>
+      <p class="section-copy contact-form-copy">{!! nl2br(e($page->body)) !!}</p>
       @endif
       <x-contact-form form-type="Get_A_Quote Form Submission" />
     </div>

@@ -16,7 +16,7 @@
   @foreach ($pages as $service)
   <article class="surface-card feature-card">
     <h3>{{ $service->title }}</h3>
-    <p>{{ $service->card_excerpt }}</p>
+    <p>{!! nl2br(e($service->card_excerpt)) !!}</p>
     <a class="preview-link" href="{{ $service->url() }}" aria-label="Learn more">
       <x-dynamic-component :component="'icon.'.($serviceIcons[$service->slug] ?? 'forward')" />
     </a>

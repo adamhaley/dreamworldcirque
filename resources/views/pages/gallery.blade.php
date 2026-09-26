@@ -11,7 +11,7 @@
           <h2 class="section-title">{{ $page->section_heading }}</h2>
         </div>
         @if ($page->body)
-        <p class="section-copy">{{ $page->body }}</p>
+        <p class="section-copy">{!! nl2br(e($page->body)) !!}</p>
         @endif
       </div>
       <div class="thumbnail-grid" data-thumbnail-gallery>
