@@ -1,5 +1,5 @@
 @props(['quotes'])
-<div id="quotes-carousel" class="carousel-shell surface-card carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="3000" data-bs-pause="false">
+<div id="quotes-carousel" class="carousel-shell surface-card carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="8000" data-bs-pause="false">
   <div class="carousel-viewport">
     <div class="carousel-inner carousel-track" aria-live="polite">
       @foreach ($quotes as $quote)
