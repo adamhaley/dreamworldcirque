@@ -75,7 +75,7 @@
     if (!modal || typeof modal.showModal !== 'function') return;
 
     const items = Array.from(grid.querySelectorAll('[data-gallery-index]'));
-    const figureEl = modal.querySelector('.gallery-modal-figure');
+    let figureEl = modal.querySelector('.gallery-modal-figure');
     const stageEl = modal.querySelector('.gallery-modal-stage');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let activeIndex = 0;
@@ -103,19 +103,21 @@
     function preloadImage(index) {
       const source = items[index].querySelector('img').getAttribute('src');
 
+      const image = new Image();
+      image.src = source;
+
+      if (typeof image.decode === 'function') {
+        return image.decode().catch(function () {});
+      }
+
       return new Promise(function (resolve) {
-        const image = new Image();
+        if (image.complete) {
+          resolve();
+          return;
+        }
+
         image.addEventListener('load', resolve, { once: true });
         image.addEventListener('error', resolve, { once: true });
-        image.src = source;
-
-        if (image.complete) {
-          if (typeof image.decode === 'function') {
-            image.decode().catch(function () {}).finally(resolve);
-          } else {
-            resolve();
-          }
-        }
       });
     }
 
@@ -151,9 +153,11 @@
         ], timing);
 
         return Promise.all([outgoingAnimation.finished, incomingAnimation.finished]).then(function () {
-          updateImage(targetIndex);
+          figureEl.remove();
           outgoingAnimation.cancel();
-          incomingFigure.remove();
+          incomingAnimation.cancel();
+          figureEl = incomingFigure;
+          activeIndex = targetIndex;
         });
       }).finally(function () {
         isAnimating = false;
