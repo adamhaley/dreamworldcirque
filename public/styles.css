@@ -105,6 +105,7 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
   /* Disabling scroll anchoring for the whole document, not just the
      header: overflow-anchor:none on the header itself only stops the
      browser from picking something *inside* the header as the anchor it
@@ -777,6 +778,8 @@ a {
 }
 
 .feature-card {
+  display: flex;
+  flex-direction: column;
   padding: 1.5rem;
   position: relative;
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -868,7 +871,8 @@ a {
 .feature-card .preview-link {
   display: flex;
   justify-content: flex-end;
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
 }
 
 .feature-card .preview-link svg {
