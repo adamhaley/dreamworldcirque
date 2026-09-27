@@ -249,6 +249,7 @@
   const media = document.querySelector('.masthead-video, .masthead-image');
   const hero = document.querySelector('.gradient-masthead, .image-masthead');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mobileLayout = window.matchMedia('(max-width: 760px)');
 
   const arrowEnterThreshold = 160;
   const arrowExitThreshold = 100;
@@ -309,7 +310,11 @@
   }
 
   function syncParallax(scrollY) {
-    if (!media || !hero || reduceMotion) return;
+    if (!media || !hero) return;
+    if (reduceMotion || mobileLayout.matches) {
+      if (media.style.transform) media.style.removeProperty('transform');
+      return;
+    }
     if (scrollY > heroHeight) return;
 
     // Throttled independently of the rAF batch above: this is the one write
@@ -358,7 +363,7 @@
       // copy in its compact state so the next section lands directly below
       // the fixed header at every mobile width, without a hard-coded offset.
       const nextSection = hero ? hero.nextElementSibling : null;
-      if (window.matchMedia('(max-width: 760px)').matches && nextSection) {
+      if (mobileLayout.matches && nextSection) {
         const compactHeader = header.cloneNode(true);
         compactHeader.classList.add('is-scrolled');
         compactHeader.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;transition:none;';
@@ -378,7 +383,10 @@
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', updateHeroHeight, { passive: true });
+  window.addEventListener('resize', function () {
+    updateHeroHeight();
+    onScroll();
+  }, { passive: true });
   update();
 })();
 
