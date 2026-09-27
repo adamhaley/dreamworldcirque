@@ -105,6 +105,7 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
   /* Disabling scroll anchoring for the whole document, not just the
      header: overflow-anchor:none on the header itself only stops the
      browser from picking something *inside* the header as the anchor it
