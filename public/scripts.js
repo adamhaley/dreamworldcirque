@@ -75,7 +75,7 @@
     if (!modal || typeof modal.showModal !== 'function') return;
 
     const items = Array.from(grid.querySelectorAll('[data-gallery-index]'));
-    const figureEl = modal.querySelector('.gallery-modal-figure');
+    let figureEl = modal.querySelector('.gallery-modal-figure');
     const stageEl = modal.querySelector('.gallery-modal-stage');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let activeIndex = 0;
@@ -103,19 +103,21 @@
     function preloadImage(index) {
       const source = items[index].querySelector('img').getAttribute('src');
 
+      const image = new Image();
+      image.src = source;
+
+      if (typeof image.decode === 'function') {
+        return image.decode().catch(function () {});
+      }
+
       return new Promise(function (resolve) {
-        const image = new Image();
+        if (image.complete) {
+          resolve();
+          return;
+        }
+
         image.addEventListener('load', resolve, { once: true });
         image.addEventListener('error', resolve, { once: true });
-        image.src = source;
-
-        if (image.complete) {
-          if (typeof image.decode === 'function') {
-            image.decode().catch(function () {}).finally(resolve);
-          } else {
-            resolve();
-          }
-        }
       });
     }
 
@@ -151,9 +153,11 @@
         ], timing);
 
         return Promise.all([outgoingAnimation.finished, incomingAnimation.finished]).then(function () {
-          updateImage(targetIndex);
+          figureEl.remove();
           outgoingAnimation.cancel();
-          incomingFigure.remove();
+          incomingAnimation.cancel();
+          figureEl = incomingFigure;
+          activeIndex = targetIndex;
         });
       }).finally(function () {
         isAnimating = false;
@@ -807,35 +811,63 @@
 (function () {
   const items = document.querySelectorAll('.faq-item');
   if (!items.length) return;
+  const mobileLayout = window.matchMedia('(max-width: 760px)');
 
-  // Auto-closing another item (below) can start a new transition on an
-  // answer while its *previous* open/close transitionend handler is still
-  // attached and pending — both fire on whichever transition completes
-  // first, and the stale one (e.g. the original "open" handler setting
-  // height back to auto) can win the race, leaving the item stuck open.
-  // Tracking and explicitly removing any pending handler before starting
-  // a new transition guarantees only the latest one ever runs.
   function clearPendingEnd(answer) {
     if (answer._pendingEnd) {
-      answer.removeEventListener('transitionend', answer._pendingEnd);
-      answer._pendingEnd = null;
+      answer._pendingEnd();
     }
+  }
+
+  function afterHeightTransition(answer, onFinish) {
+    return new Promise(function (resolve) {
+      let timeout;
+
+      function cleanup() {
+        answer.removeEventListener('transitionend', onTransitionEnd);
+        window.clearTimeout(timeout);
+        answer._pendingEnd = null;
+      }
+
+      function cancel() {
+        cleanup();
+        resolve();
+      }
+
+      function finish() {
+        cleanup();
+        onFinish();
+        resolve();
+      }
+
+      function onTransitionEnd(event) {
+        if (event.target === answer && event.propertyName === 'height') finish();
+      }
+
+      answer._pendingEnd = cancel;
+      const duration = (parseFloat(window.getComputedStyle(answer).transitionDuration) || 0) * 1000;
+
+      if (!duration) {
+        finish();
+        return;
+      }
+
+      answer.addEventListener('transitionend', onTransitionEnd);
+      timeout = window.setTimeout(finish, duration + 50);
+    });
   }
 
   function closeItem(item) {
     const answer = item.querySelector('.faq-answer');
     clearPendingEnd(answer);
-    answer.style.height = answer.scrollHeight + 'px';
+    answer.style.height = answer.getBoundingClientRect().height + 'px';
     answer.getBoundingClientRect(); // force reflow so the next line animates
     answer.style.height = '0px';
-    const onEnd = function () {
+
+    return afterHeightTransition(answer, function () {
       item.open = false;
       answer.style.height = '';
-      answer.removeEventListener('transitionend', onEnd);
-      answer._pendingEnd = null;
-    };
-    answer._pendingEnd = onEnd;
-    answer.addEventListener('transitionend', onEnd, { once: true });
+    });
   }
 
   function openItem(item) {
@@ -846,16 +878,13 @@
     answer.style.height = '0px';
     answer.getBoundingClientRect(); // force reflow so the next line animates
     answer.style.height = targetHeight + 'px';
-    const onEnd = function () {
+
+    afterHeightTransition(answer, function () {
       // Leave it at "auto" (not "") so it stays open and reflows with
       // content/viewport changes, instead of snapping to the CSS default
       // of height:0 and immediately animating shut again.
       answer.style.height = 'auto';
-      answer.removeEventListener('transitionend', onEnd);
-      answer._pendingEnd = null;
-    };
-    answer._pendingEnd = onEnd;
-    answer.addEventListener('transitionend', onEnd, { once: true });
+    });
   }
 
   // Scroll token below: incremented on every open click, so a deferred
@@ -869,6 +898,7 @@
 
     summary.addEventListener('click', function (event) {
       event.preventDefault();
+      const thisToken = ++scrollToken;
 
       if (item.open) {
         closeItem(item);
@@ -877,34 +907,22 @@
 
       // Only one answer open at a time: close any other item that's
       // currently open before opening this one.
-      const others = [];
+      const closing = [];
       items.forEach(function (other) {
         if (other !== item && other.open) {
-          others.push(other);
-          closeItem(other);
+          closing.push(closeItem(other));
         }
       });
 
       openItem(item);
 
-      // Agency-style FAQ snap: the opened question scrolls to the top of
-      // the viewport so its answer reads right below the header, rather
-      // than the accordion just growing wherever the click happened to
-      // land. If another item is closing at the same time, its shrinking
-      // height pulls this item upward over that same span, so scrolling
-      // immediately would target a now-stale position -- and running a
-      // second corrective scroll afterward doesn't work either, since it
-      // fires while the first (already wrong) smooth scroll is still
-      // animating toward its stale target and gets dragged along with it.
-      // Waiting for any closing item(s) to finish first and scrolling
-      // exactly once, against the settled layout, avoids the race outright.
-      const thisToken = ++scrollToken;
-      Promise.all(others.map(function (other) {
-        return new Promise(function (resolve) {
-          other.querySelector('.faq-answer').addEventListener('transitionend', resolve, { once: true });
-        });
-      })).then(function () {
-        if (thisToken !== scrollToken) return;
+      // Mobile keeps the settled-layout scroll so the answer starts below
+      // the header. On desktop, opening in place avoids a second movement
+      // after the accordion animation.
+      if (!mobileLayout.matches) return;
+
+      Promise.all(closing).then(function () {
+        if (thisToken !== scrollToken || !mobileLayout.matches) return;
         item.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
