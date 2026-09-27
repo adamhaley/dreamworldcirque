@@ -811,6 +811,7 @@
 (function () {
   const items = document.querySelectorAll('.faq-item');
   if (!items.length) return;
+  const mobileLayout = window.matchMedia('(max-width: 760px)');
 
   function clearPendingEnd(answer) {
     if (answer._pendingEnd) {
@@ -897,6 +898,7 @@
 
     summary.addEventListener('click', function (event) {
       event.preventDefault();
+      const thisToken = ++scrollToken;
 
       if (item.open) {
         closeItem(item);
@@ -914,20 +916,13 @@
 
       openItem(item);
 
-      // Agency-style FAQ snap: the opened question scrolls to the top of
-      // the viewport so its answer reads right below the header, rather
-      // than the accordion just growing wherever the click happened to
-      // land. If another item is closing at the same time, its shrinking
-      // height pulls this item upward over that same span, so scrolling
-      // immediately would target a now-stale position -- and running a
-      // second corrective scroll afterward doesn't work either, since it
-      // fires while the first (already wrong) smooth scroll is still
-      // animating toward its stale target and gets dragged along with it.
-      // Waiting for any closing item(s) to finish first and scrolling
-      // exactly once, against the settled layout, avoids the race outright.
-      const thisToken = ++scrollToken;
+      // Mobile keeps the settled-layout scroll so the answer starts below
+      // the header. On desktop, opening in place avoids a second movement
+      // after the accordion animation.
+      if (!mobileLayout.matches) return;
+
       Promise.all(closing).then(function () {
-        if (thisToken !== scrollToken) return;
+        if (thisToken !== scrollToken || !mobileLayout.matches) return;
         item.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
