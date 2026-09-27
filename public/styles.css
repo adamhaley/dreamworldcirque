@@ -1730,6 +1730,16 @@ a {
   will-change: transform;
 }
 
+@media (max-width: 760px) {
+  .masthead-video,
+  .masthead-image {
+    top: 0;
+    height: 100%;
+    transition: none;
+    will-change: auto;
+  }
+}
+
 .masthead-image-overlay {
   position: absolute;
   inset: 0;
