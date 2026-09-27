@@ -7,6 +7,8 @@ use App\Http\Controllers\StoreContactSubmissionController;
 use App\Jobs\ClassifyProspect;
 use App\Models\Page;
 use App\Models\Prospect;
+use App\Notifications\NewContactSubmission;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -96,6 +98,24 @@ class StoreContactSubmissionControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_notifies_jena_about_a_new_contact_submission(): void
+    {
+        Queue::fake();
+        Notification::fake();
+        $this->freezeTime();
+
+        $this->postJson('/contact', $this->validPayload())->assertCreated();
+
+        $prospect = Prospect::query()->sole();
+        Notification::assertSentOnDemand(NewContactSubmission::class, fn (NewContactSubmission $notification, array $channels, object $notifiable): bool => $notification->prospect->is($prospect)
+            && $channels === ['mail']
+            && $notifiable->routeNotificationFor('mail') === 'jenacarpenter@gmail.com'
+            && $notification->delay?->toISOString() === now()->addMinutes(2)->toISOString()
+        );
+        Notification::assertSentOnDemandOnce(NewContactSubmission::class);
+    }
+
+    #[Test]
     public function it_returns_json_validation_errors_for_a_missing_email(): void
     {
         Queue::fake();
@@ -109,11 +129,13 @@ class StoreContactSubmissionControllerTest extends TestCase
     public function it_rejects_a_filled_honeypot_without_creating_a_prospect(): void
     {
         Queue::fake();
+        Notification::fake();
 
         $this->postJson('/contact', $this->validPayload(['website' => 'https://spam.example']))
             ->assertUnprocessable();
 
         $this->assertDatabaseCount(Prospect::class, 0);
+        Notification::assertNothingSent();
     }
 
     #[Test]
