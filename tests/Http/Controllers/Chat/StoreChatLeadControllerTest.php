@@ -7,6 +7,7 @@ use App\Http\Controllers\Chat\StoreChatLeadController;
 use App\Jobs\ClassifyProspect;
 use App\Models\ChatQuery;
 use App\Models\Prospect;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,6 +20,7 @@ class StoreChatLeadControllerTest extends TestCase
     public function it_creates_a_chatbot_prospect_from_the_unanswered_question(): void
     {
         Queue::fake();
+        Notification::fake();
 
         $response = $this->postJson('/chat/lead', [
             'name' => 'Jo Riggs',
@@ -35,6 +37,7 @@ class StoreChatLeadControllerTest extends TestCase
             'message' => 'Do you do fire performances indoors?',
             'status' => ProspectStatus::PendingClassification->value,
         ]);
+        Notification::assertNothingSent();
     }
 
     #[Test]
