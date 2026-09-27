@@ -812,34 +812,61 @@
   const items = document.querySelectorAll('.faq-item');
   if (!items.length) return;
 
-  // Auto-closing another item (below) can start a new transition on an
-  // answer while its *previous* open/close transitionend handler is still
-  // attached and pending — both fire on whichever transition completes
-  // first, and the stale one (e.g. the original "open" handler setting
-  // height back to auto) can win the race, leaving the item stuck open.
-  // Tracking and explicitly removing any pending handler before starting
-  // a new transition guarantees only the latest one ever runs.
   function clearPendingEnd(answer) {
     if (answer._pendingEnd) {
-      answer.removeEventListener('transitionend', answer._pendingEnd);
-      answer._pendingEnd = null;
+      answer._pendingEnd();
     }
+  }
+
+  function afterHeightTransition(answer, onFinish) {
+    return new Promise(function (resolve) {
+      let timeout;
+
+      function cleanup() {
+        answer.removeEventListener('transitionend', onTransitionEnd);
+        window.clearTimeout(timeout);
+        answer._pendingEnd = null;
+      }
+
+      function cancel() {
+        cleanup();
+        resolve();
+      }
+
+      function finish() {
+        cleanup();
+        onFinish();
+        resolve();
+      }
+
+      function onTransitionEnd(event) {
+        if (event.target === answer && event.propertyName === 'height') finish();
+      }
+
+      answer._pendingEnd = cancel;
+      const duration = (parseFloat(window.getComputedStyle(answer).transitionDuration) || 0) * 1000;
+
+      if (!duration) {
+        finish();
+        return;
+      }
+
+      answer.addEventListener('transitionend', onTransitionEnd);
+      timeout = window.setTimeout(finish, duration + 50);
+    });
   }
 
   function closeItem(item) {
     const answer = item.querySelector('.faq-answer');
     clearPendingEnd(answer);
-    answer.style.height = answer.scrollHeight + 'px';
+    answer.style.height = answer.getBoundingClientRect().height + 'px';
     answer.getBoundingClientRect(); // force reflow so the next line animates
     answer.style.height = '0px';
-    const onEnd = function () {
+
+    return afterHeightTransition(answer, function () {
       item.open = false;
       answer.style.height = '';
-      answer.removeEventListener('transitionend', onEnd);
-      answer._pendingEnd = null;
-    };
-    answer._pendingEnd = onEnd;
-    answer.addEventListener('transitionend', onEnd, { once: true });
+    });
   }
 
   function openItem(item) {
@@ -850,16 +877,13 @@
     answer.style.height = '0px';
     answer.getBoundingClientRect(); // force reflow so the next line animates
     answer.style.height = targetHeight + 'px';
-    const onEnd = function () {
+
+    afterHeightTransition(answer, function () {
       // Leave it at "auto" (not "") so it stays open and reflows with
       // content/viewport changes, instead of snapping to the CSS default
       // of height:0 and immediately animating shut again.
       answer.style.height = 'auto';
-      answer.removeEventListener('transitionend', onEnd);
-      answer._pendingEnd = null;
-    };
-    answer._pendingEnd = onEnd;
-    answer.addEventListener('transitionend', onEnd, { once: true });
+    });
   }
 
   // Scroll token below: incremented on every open click, so a deferred
@@ -881,11 +905,10 @@
 
       // Only one answer open at a time: close any other item that's
       // currently open before opening this one.
-      const others = [];
+      const closing = [];
       items.forEach(function (other) {
         if (other !== item && other.open) {
-          others.push(other);
-          closeItem(other);
+          closing.push(closeItem(other));
         }
       });
 
@@ -903,11 +926,7 @@
       // Waiting for any closing item(s) to finish first and scrolling
       // exactly once, against the settled layout, avoids the race outright.
       const thisToken = ++scrollToken;
-      Promise.all(others.map(function (other) {
-        return new Promise(function (resolve) {
-          other.querySelector('.faq-answer').addEventListener('transitionend', resolve, { once: true });
-        });
-      })).then(function () {
+      Promise.all(closing).then(function () {
         if (thisToken !== scrollToken) return;
         item.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
