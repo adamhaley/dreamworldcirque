@@ -27,6 +27,10 @@
       $ogTitle = $page->meta_title ?: $page->title.' | Dream World Cirque';
       $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
       $ogImageMeta = $page->resolvedOgImage();
+      // Guards against counting hits on Jena's staging subdomain -- both hosts
+      // share this one app/config, so APP_NOINDEX can't tell them apart once
+      // it's flipped false for production.
+      $isProductionHost = request()->getHost() === parse_url(config('app.url'), PHP_URL_HOST);
     @endphp
     <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
@@ -46,6 +50,15 @@
     <meta name="twitter:title" content="{{ $ogTitle }}" />
     <meta name="twitter:description" content="{{ $ogDescription }}" />
     <meta name="twitter:image" content="{{ $ogImageMeta['url'] }}" />
+    @if (config('site.google_analytics_id') && $isProductionHost)
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('site.google_analytics_id') }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', '{{ config('site.google_analytics_id') }}');
+    </script>
+    @endif
     @stack('head')
     <link rel="stylesheet" href="/styles.css?v={{ filemtime(public_path('styles.css')) }}" />
     @if ($settings->accent_color)

@@ -3,6 +3,8 @@
 return [
     'noindex' => (bool) env('APP_NOINDEX', false),
 
+    'google_analytics_id' => env('GOOGLE_ANALYTICS_ID'),
+
     'seed_admin' => [
         'name' => env('SEED_ADMIN_NAME'),
         'email' => env('SEED_ADMIN_EMAIL'),
