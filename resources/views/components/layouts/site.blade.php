@@ -26,11 +26,7 @@
     @php
       $ogTitle = $page->meta_title ?: $page->title.' | Dream World Cirque';
       $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
-      $ogImage = $page->og_image
-          ? asset('storage/'.$page->og_image)
-          : ($page->generatedOgImagePath()
-              ? asset('storage/'.$page->generatedOgImagePath())
-              : ($page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg')));
+      $ogImageMeta = $page->resolvedOgImage();
     @endphp
     <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
@@ -41,11 +37,15 @@
     <meta property="og:url" content="{{ url()->current() }}" />
     <meta property="og:title" content="{{ $ogTitle }}" />
     <meta property="og:description" content="{{ $ogDescription }}" />
-    <meta property="og:image" content="{{ $ogImage }}" />
+    <meta property="og:image" content="{{ $ogImageMeta['url'] }}" />
+    @if ($ogImageMeta['width'] && $ogImageMeta['height'])
+    <meta property="og:image:width" content="{{ $ogImageMeta['width'] }}" />
+    <meta property="og:image:height" content="{{ $ogImageMeta['height'] }}" />
+    @endif
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="{{ $ogTitle }}" />
     <meta name="twitter:description" content="{{ $ogDescription }}" />
-    <meta name="twitter:image" content="{{ $ogImage }}" />
+    <meta name="twitter:image" content="{{ $ogImageMeta['url'] }}" />
     @stack('head')
     <link rel="stylesheet" href="/styles.css?v={{ filemtime(public_path('styles.css')) }}" />
     @if ($settings->accent_color)

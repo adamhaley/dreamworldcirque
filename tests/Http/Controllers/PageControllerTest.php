@@ -295,6 +295,34 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_declares_the_real_og_image_dimensions_so_crawlers_do_not_have_to_infer_them(): void
+    {
+        Storage::fake('public');
+        $gdImage = imagecreatetruecolor(400, 300);
+        ob_start();
+        imagejpeg($gdImage);
+        Storage::disk('public')->put('pages/hero.jpg', ob_get_clean());
+        imagedestroy($gdImage);
+        Page::factory()->create(['slug' => 'example', 'hero_image' => 'pages/hero.jpg']);
+
+        $response = $this->get('/example/');
+
+        $response->assertSee('<meta property="og:image:width" content="1200" />', escape: false);
+        $response->assertSee('<meta property="og:image:height" content="630" />', escape: false);
+    }
+
+    #[Test]
+    public function it_declares_the_site_default_image_dimensions(): void
+    {
+        Page::factory()->home()->create();
+
+        $response = $this->get('/');
+
+        $response->assertSee('<meta property="og:image:width" content="1280" />', escape: false);
+        $response->assertSee('<meta property="og:image:height" content="720" />', escape: false);
+    }
+
+    #[Test]
     public function it_overrides_the_accent_color_when_one_is_set(): void
     {
         Page::factory()->home()->create();
