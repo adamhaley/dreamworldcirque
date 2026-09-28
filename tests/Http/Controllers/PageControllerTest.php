@@ -12,6 +12,7 @@ use App\Models\SiteSetting;
 use App\Models\Spotlight;
 use App\Models\User;
 use Generator;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -257,7 +258,24 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_falls_back_to_the_hero_image_when_no_social_sharing_image_is_set(): void
+    public function it_falls_back_to_the_generated_composite_when_no_social_sharing_image_is_set(): void
+    {
+        Storage::fake('public');
+        $gdImage = imagecreatetruecolor(400, 300);
+        ob_start();
+        imagejpeg($gdImage);
+        Storage::disk('public')->put('pages/hero.jpg', ob_get_clean());
+        imagedestroy($gdImage);
+        $page = Page::factory()->create(['slug' => 'example', 'hero_image' => 'pages/hero.jpg']);
+        $generatedPath = Page::ogImageStoragePathFor($page->id);
+
+        $response = $this->get('/example/');
+
+        $response->assertSee('<meta property="og:image" content="'.asset('storage/'.$generatedPath).'" />', escape: false);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_hero_image_when_neither_a_social_sharing_image_nor_a_generated_composite_exists(): void
     {
         Page::factory()->create(['slug' => 'example', 'hero_image' => 'pages/hero.jpg']);
 

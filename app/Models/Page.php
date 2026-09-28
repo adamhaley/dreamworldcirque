@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\GenerateOgImageAction;
 use App\Enums\PageTemplate;
 use Database\Factories\PageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property list<string>|null $bullets
@@ -16,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'parent_id', 'title', 'slug', 'template', 'sort_order', 'is_published', 'show_in_nav', 'nav_anchor',
-    'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image', 'og_image',
+    'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image', 'og_image', 'og_cta',
     'section_eyebrow', 'section_heading', 'body', 'bullets', 'buttons', 'circle_image', 'circle_image_alt',
     'quote_id', 'card_excerpt', 'cta_eyebrow', 'cta_heading', 'cta_button_label',
 ])]
@@ -51,7 +53,31 @@ class Page extends Model
             if ($page->wasChanged('path')) {
                 $page->children->each(fn (Page $child): bool => $child->setRelation('parent', $page)->save());
             }
+
+            // isDirty(), not wasChanged(): syncChanges() only runs on update, so
+            // wasChanged() is unreliable for freshly created models here -- isDirty()
+            // still reflects pre-sync state correctly for both create and update.
+            if ($page->isDirty(['hero_image', 'hero_heading', 'hero_subheading', 'og_cta', 'title'])) {
+                (new GenerateOgImageAction)($page);
+            }
         });
+    }
+
+    /** Storage path (on the "public" disk) for a page's generated OG image composite. */
+    public static function ogImageStoragePathFor(int $id): string
+    {
+        return "og-images/{$id}.jpg";
+    }
+
+    /**
+     * The hero+CTA composite generated for this page, if one exists. Used as
+     * the OG image fallback when no manual og_image override is uploaded.
+     */
+    public function generatedOgImagePath(): ?string
+    {
+        $path = self::ogImageStoragePathFor($this->id);
+
+        return Storage::disk('public')->exists($path) ? $path : null;
     }
 
     /** @return BelongsTo<Page, $this> */

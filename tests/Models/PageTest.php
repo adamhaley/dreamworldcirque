@@ -4,6 +4,7 @@ namespace Tests\Models;
 
 use App\Enums\PageTemplate;
 use App\Models\Page;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -51,5 +52,49 @@ class PageTest extends TestCase
         $ids = $parent->descendantIds();
 
         $this->assertEqualsCanonicalizing([$child->id, $grandchild->id], $ids);
+    }
+
+    #[Test]
+    public function it_generates_an_og_image_composite_when_the_hero_image_is_set_on_save(): void
+    {
+        Storage::fake('public');
+        $gdImage = imagecreatetruecolor(400, 300);
+        ob_start();
+        imagejpeg($gdImage);
+        Storage::disk('public')->put('pages/hero.jpg', ob_get_clean());
+        imagedestroy($gdImage);
+
+        $page = Page::factory()->create(['hero_image' => 'pages/hero.jpg']);
+
+        Storage::disk('public')->assertExists(Page::ogImageStoragePathFor($page->id));
+    }
+
+    #[Test]
+    public function it_regenerates_the_og_image_composite_when_the_og_cta_changes(): void
+    {
+        Storage::fake('public');
+        $gdImage = imagecreatetruecolor(400, 300);
+        ob_start();
+        imagejpeg($gdImage);
+        Storage::disk('public')->put('pages/hero.jpg', ob_get_clean());
+        imagedestroy($gdImage);
+        $page = Page::factory()->create(['hero_image' => 'pages/hero.jpg']);
+        $path = Page::ogImageStoragePathFor($page->id);
+        Storage::disk('public')->delete($path);
+        Storage::disk('public')->assertMissing($path);
+
+        $page->update(['og_cta' => 'Book Your Signature Moment']);
+
+        Storage::disk('public')->assertExists($path);
+    }
+
+    #[Test]
+    public function it_does_not_generate_an_og_image_composite_without_a_hero_image(): void
+    {
+        Storage::fake('public');
+
+        $page = Page::factory()->create(['hero_image' => null]);
+
+        Storage::disk('public')->assertMissing(Page::ogImageStoragePathFor($page->id));
     }
 }

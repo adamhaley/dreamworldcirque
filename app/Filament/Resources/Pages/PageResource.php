@@ -165,9 +165,12 @@ class PageResource extends Resource
             Section::make('Search engines')->collapsed()->schema([
                 TextInput::make('meta_title')->placeholder('Defaults to "Page title | Dream World Cirque"'),
                 Textarea::make('meta_description')->rows(2)->maxLength(500),
+                TextInput::make('og_cta')
+                    ->label('Social sharing headline')
+                    ->helperText('A "come hither" line for the auto-generated social sharing image, e.g. "Book Your Signature Moment". Optional — left empty, the image shows just the hero heading and subheading.'),
                 FileUpload::make('og_image')
                     ->label('Social sharing image')
-                    ->helperText('Shown when this page is shared on Facebook, LinkedIn, etc. Recommended 1200×630 — falls back to the hero image, then a site default, when left empty.')
+                    ->helperText('Shown when this page is shared on Facebook, LinkedIn, etc. Leave empty to use the auto-generated hero + CTA image; falls back further to the plain hero image, then a site default.')
                     ->image()
                     ->imageEditor()
                     ->imageEditorAspectRatios(['1200:630'])
