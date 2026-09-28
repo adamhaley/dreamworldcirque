@@ -323,6 +323,40 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_includes_the_ga4_snippet_on_the_production_host_when_configured(): void
+    {
+        config(['app.url' => 'https://dreamworldcirque.com', 'site.google_analytics_id' => 'G-TEST12345']);
+        Page::factory()->home()->create();
+
+        $response = $this->get('https://dreamworldcirque.com/');
+
+        $response->assertSee('googletagmanager.com/gtag/js?id=G-TEST12345', escape: false);
+        $response->assertSee("gtag('config', 'G-TEST12345');", escape: false);
+    }
+
+    #[Test]
+    public function it_omits_the_ga4_snippet_on_a_non_production_host(): void
+    {
+        config(['app.url' => 'https://dreamworldcirque.com', 'site.google_analytics_id' => 'G-TEST12345']);
+        Page::factory()->home()->create();
+
+        $response = $this->get('https://dreamworldcirque.ahmedia.ai/');
+
+        $response->assertDontSee('googletagmanager.com', escape: false);
+    }
+
+    #[Test]
+    public function it_omits_the_ga4_snippet_when_no_measurement_id_is_configured(): void
+    {
+        config(['app.url' => 'https://dreamworldcirque.com', 'site.google_analytics_id' => null]);
+        Page::factory()->home()->create();
+
+        $response = $this->get('https://dreamworldcirque.com/');
+
+        $response->assertDontSee('googletagmanager.com', escape: false);
+    }
+
+    #[Test]
     public function it_overrides_the_accent_color_when_one_is_set(): void
     {
         Page::factory()->home()->create();
