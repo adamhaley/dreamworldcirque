@@ -22,11 +22,12 @@ class GenerateOgImageAction
     /**
      * Composite the page's hero image with its own hero heading and
      * subheading (bottom-right, mirroring what a visitor actually lands on)
-     * plus an editable "come hither" headline (top-left) and the site
-     * domain (top-right) into a 1200x630 social share image. Used as the OG
-     * image fallback when no manual override is uploaded. Removes any stale
-     * generated file when the page no longer has a hero image to composite
-     * against.
+     * plus a "come hither" headline (top-left, from og_cta if set, else the
+     * bottom-of-page cta_heading -- client-written CTA copy doubles well as
+     * a share hook) and the site domain (top-right) into a 1200x630 social
+     * share image. Used as the OG image fallback when no manual override is
+     * uploaded. Removes any stale generated file when the page no longer
+     * has a hero image to composite against.
      */
     public function __invoke(Page $page): ?string
     {
@@ -39,6 +40,7 @@ class GenerateOgImageAction
         }
 
         $heading = $page->hero_heading ?: $page->title;
+        $cta = $page->og_cta ?: $page->cta_heading;
         $left = self::MARGIN;
         $right = self::WIDTH - self::MARGIN;
         $top = self::MARGIN;
@@ -78,8 +80,8 @@ class GenerateOgImageAction
             });
         }
 
-        if ($page->og_cta) {
-            $image->text($page->og_cta, $left, $top, function (FontFactory $font): void {
+        if ($cta) {
+            $image->text($cta, $left, $top, function (FontFactory $font): void {
                 $font->filename(public_path('fonts/Catamaran-Bold.ttf'));
                 $font->size(72);
                 $font->color('#ffffff');

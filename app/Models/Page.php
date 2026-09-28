@@ -57,7 +57,7 @@ class Page extends Model
             // isDirty(), not wasChanged(): syncChanges() only runs on update, so
             // wasChanged() is unreliable for freshly created models here -- isDirty()
             // still reflects pre-sync state correctly for both create and update.
-            if ($page->isDirty(['hero_image', 'hero_heading', 'hero_subheading', 'og_cta', 'title'])) {
+            if ($page->isDirty(['hero_image', 'hero_heading', 'hero_subheading', 'og_cta', 'cta_heading', 'title'])) {
                 (new GenerateOgImageAction)($page);
             }
         });
