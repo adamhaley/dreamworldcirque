@@ -167,7 +167,7 @@ class PageResource extends Resource
                 Textarea::make('meta_description')->rows(2)->maxLength(500),
                 TextInput::make('og_cta')
                     ->label('Social sharing headline')
-                    ->helperText('A "come hither" line for the auto-generated social sharing image, e.g. "Book Your Signature Moment". Optional — left empty, the image shows just the hero heading and subheading.'),
+                    ->helperText('A "come hither" line for the auto-generated social sharing image. Defaults to this page\'s CTA heading below — only set this if you want different wording for social sharing specifically.'),
                 FileUpload::make('og_image')
                     ->label('Social sharing image')
                     ->helperText('Shown when this page is shared on Facebook, LinkedIn, etc. Leave empty to use the auto-generated hero + CTA image; falls back further to the plain hero image, then a site default.')

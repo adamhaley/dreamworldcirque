@@ -55,13 +55,32 @@ class GenerateOgImageActionTest extends TestCase
     }
 
     #[Test]
-    public function it_includes_the_og_cta_headline_when_set(): void
+    public function it_prefers_the_og_cta_headline_over_the_cta_heading_when_both_are_set(): void
     {
         Storage::fake('public');
         $this->fakeHeroImage('pages/hero.jpg');
         $page = Page::factory()->create([
             'hero_image' => 'pages/hero.jpg',
             'og_cta' => 'Book Your Signature Moment',
+            'cta_heading' => "Let's design your event's signature moment.",
+        ]);
+
+        $path = (new GenerateOgImageAction)($page);
+
+        Storage::disk('public')->assertExists($path);
+        $size = getimagesizefromstring(Storage::disk('public')->get($path));
+        $this->assertSame([1200, 630], [$size[0], $size[1]]);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_cta_heading_as_the_come_hither_line_when_og_cta_is_not_set(): void
+    {
+        Storage::fake('public');
+        $this->fakeHeroImage('pages/hero.jpg');
+        $page = Page::factory()->create([
+            'hero_image' => 'pages/hero.jpg',
+            'og_cta' => null,
+            'cta_heading' => "Let's design your event's signature moment.",
         ]);
 
         $path = (new GenerateOgImageAction)($page);
