@@ -80,6 +80,36 @@ class Page extends Model
         return Storage::disk('public')->exists($path) ? $path : null;
     }
 
+    /**
+     * The page's OG share image (manual og_image override -> generated
+     * hero+CTA composite -> plain hero image -> site default) along with its
+     * real pixel dimensions, so social crawlers get explicit
+     * og:image:width/height instead of having to download the image and
+     * infer them themselves.
+     *
+     * @return array{url: string, width: ?int, height: ?int}
+     */
+    public function resolvedOgImage(): array
+    {
+        $path = $this->og_image ?: ($this->generatedOgImagePath() ?: $this->hero_image);
+
+        if ($path) {
+            $url = asset('storage/'.$path);
+            $absolutePath = Storage::disk('public')->path($path);
+        } else {
+            $url = asset('assets/video/hero-poster.jpg');
+            $absolutePath = public_path('assets/video/hero-poster.jpg');
+        }
+
+        $size = @getimagesize($absolutePath);
+
+        return [
+            'url' => $url,
+            'width' => $size[0] ?? null,
+            'height' => $size[1] ?? null,
+        ];
+    }
+
     /** @return BelongsTo<Page, $this> */
     public function parent(): BelongsTo
     {
