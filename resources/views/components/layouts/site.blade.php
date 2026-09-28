@@ -28,7 +28,9 @@
       $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
       $ogImage = $page->og_image
           ? asset('storage/'.$page->og_image)
-          : ($page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg'));
+          : ($page->generatedOgImagePath()
+              ? asset('storage/'.$page->generatedOgImagePath())
+              : ($page->hero_image ? asset('storage/'.$page->hero_image) : asset('assets/video/hero-poster.jpg')));
     @endphp
     <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
