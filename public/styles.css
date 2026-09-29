@@ -1041,6 +1041,11 @@ a {
   border: 0;
   padding: 0;
   cursor: pointer;
+  /* Without this, a tap can get consumed by the browser's double-tap-to-zoom
+     gesture detection instead of registering as a click -- on mobile this
+     shows up as needing several taps before one finally lands. This base
+     class backs every carousel/gallery nav control on the site. */
+  touch-action: manipulation;
 }
 
 .codette-carousel-control {
@@ -1228,6 +1233,8 @@ a {
   display: grid;
   place-items: center;
   transition: background 160ms ease;
+  /* See .codette-carousel-control's comment -- same fix, same reason. */
+  touch-action: manipulation;
 }
 
 .gallery-modal-close:hover {
@@ -2031,6 +2038,8 @@ body:has(.image-masthead) .scroll-down-link:hover path {
   align-items: center;
   justify-content: center;
   transition: transform 180ms ease, box-shadow 180ms ease;
+  /* See .codette-carousel-control's comment -- same fix, same reason. */
+  touch-action: manipulation;
 }
 
 .chat-send-button {
@@ -2112,6 +2121,7 @@ body:has(.image-masthead) .scroll-down-link:hover path {
   justify-content: center;
   border-radius: 50%;
   transition: background 180ms ease, box-shadow 180ms ease;
+  touch-action: manipulation;
 }
 
 .chat-close-button:hover {
