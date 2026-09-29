@@ -1147,18 +1147,105 @@ a {
   transform: scale(1.05);
 }
 
-.gallery-modal {
+/* Bootstrap's JS bundle is loaded (see gallery.blade.php's @push('scripts')),
+   but not its CSS -- Codette already hand-recreates the carousel rules above
+   this point, themed to match. This is that same treatment for the Modal
+   component Bootstrap's JS expects (.show/.fade toggling, backdrop
+   injection, body.modal-open), used here for the first time for the gallery
+   lightbox: a real, battle-tested Modal + Carousel pairing instead of a
+   hand-rolled <dialog> (which had its own z-index stacking and touch-target
+   bugs that this sidesteps entirely by not reimplementing what Bootstrap
+   already solved). */
+.modal {
   position: fixed;
   inset: 0;
-  max-width: 100vw;
-  max-height: 100vh;
-  width: 100%;
+  z-index: 1055;
+  display: none;
+  outline: 0;
+}
+
+.modal.show {
+  display: block;
+}
+
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+  transform: none;
+}
+
+.modal-dialog {
+  position: relative;
+  width: auto;
+  margin: 0.5rem;
+  pointer-events: none;
+}
+
+.modal-dialog.modal-fullscreen {
+  width: 100vw;
+  max-width: none;
   height: 100%;
   margin: 0;
-  padding: 0;
-  border: 0;
+}
+
+.modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
   background: transparent;
+  outline: 0;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(8, 8, 10, 0.9);
+}
+
+.modal-backdrop.fade {
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+
+.modal-backdrop.show {
+  opacity: 1;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.gallery-modal-carousel,
+.gallery-modal-carousel .carousel-inner,
+.gallery-modal-carousel .carousel-item {
+  height: 100%;
+}
+
+.gallery-modal-figure {
+  /* No grid-template-rows splitting image/caption into separate areas
+     anymore -- that reserved a whole row for the caption whether or not it
+     was showing, shrinking the image's share of the viewport below what the
+     homepage carousel gets (which has no such reservation and simply lets
+     the page scroll past it if needed). The caption is instead an overlay
+     (below) so the image gets the full box. */
+  position: relative;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  /* Trimmed from clamp(1.5rem, 5vw, 4rem) -- that alone was costing up to
+     8rem of combined vertical space against a fixed viewport height, on top
+     of the caption row above. An apex-viewing lightbox should spend that
+     space on the photo. */
+  padding: clamp(0.5rem, 2vw, 1.5rem);
   color: #f5f5f7;
+  text-align: center;
   /* Nothing in here is meant to be selected -- without this, clicking the
      nav buttons a little off-center (easy to do while clicking through
      several photos in a row) can land on the caption text instead and
@@ -1168,72 +1255,74 @@ a {
   -webkit-user-select: none;
 }
 
-.gallery-modal::backdrop {
-  background: rgba(8, 8, 10, 0.9);
-}
-
-.gallery-modal-inner {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  padding: clamp(1.5rem, 5vw, 4rem);
-}
-
-.gallery-modal-stage {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.gallery-modal-figure {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  justify-items: center;
-  align-items: center;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-}
-
 .gallery-modal-figure img {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  /* width/height:100% + object-fit:contain, not width/height:auto +
+     max-width/max-height:100% -- the auto+max-* combo renders the image at
+     its native pixel size and never scales UP past that, so on any viewport
+     bigger than the source photo's own resolution the "full-screen" lightbox
+     was actually showing it smaller than the hero/carousel elsewhere, which
+     fills its box via object-fit:cover regardless of native size. This still
+     shows the whole photo (no cropping, unlike cover) but lets it grow to
+     fill the available space the same way. */
+  width: 100%;
+  height: 100%;
   min-height: 0;
   margin: 0 auto;
   object-fit: contain;
   border-radius: var(--radius-md);
 }
 
-.gallery-modal-figure figcaption {
-  margin: 1rem 0 0;
-  color: rgba(245, 245, 247, 0.8);
+.gallery-modal-caption {
+  /* A sibling of .gallery-modal-carousel inside .modal-content (already
+     position:relative), not nested in .gallery-modal-figure -- living
+     outside .carousel-inner is what lets it cross-fade in place instead of
+     sliding with the image (see gallery.blade.php's slide.bs.carousel
+     listener). */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(0.5rem, 2vw, 1.5rem);
+  z-index: 2;
+  margin: 0;
+  /* Full-bleed band, no side gutter -- left/right padding here is on the
+     text, not the background, so the band itself still reaches both edges. */
+  padding: 0.75rem clamp(0.5rem, 2vw, 1.5rem);
+  /* A flat, evenly-opaque band, not a fade-to-transparent gradient -- a
+     gradient thins out right where the text sits, so legibility against a
+     light or busy photo still varied by word position. */
+  background: rgba(8, 8, 10, 0.75);
+  color: rgba(245, 245, 247, 0.9);
   font-size: 0.95rem;
+  text-align: center;
+  transition: opacity ease;
 }
 
-.gallery-modal-figure figcaption:empty {
+.gallery-modal-caption.is-hidden {
+  opacity: 0;
+}
+
+.gallery-modal-caption:empty {
   display: none;
 }
 
 .gallery-modal-close {
   position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  right: clamp(1rem, 3vw, 2rem);
+  z-index: 3;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 0;
   border-radius: 999px;
   background: rgba(245, 245, 247, 0.12);
   color: #f5f5f7;
+  font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
   display: grid;
   place-items: center;
   transition: background 160ms ease;
-  /* See .codette-carousel-control's comment -- same fix, same reason. */
   touch-action: manipulation;
 }
 
@@ -1241,17 +1330,18 @@ a {
   background: rgba(245, 245, 247, 0.24);
 }
 
-.gallery-modal-close {
-  top: clamp(1rem, 3vw, 2rem);
-  right: clamp(1rem, 3vw, 2rem);
-  width: 2.75rem;
-  height: 2.75rem;
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
-.gallery-modal-nav {
+/* Doubled up with .gallery-modal-carousel, not just .gallery-modal-nav
+   alone -- a global @media (max-width: 960px) rule resets the shared
+   .codette-carousel-control's `top` back to
+   calc(var(--carousel-media-height) / 2) for the homepage carousel's mobile
+   layout. That variable is undefined here, which collapses to `auto` and
+   drops the button to its normal flow position (below the image) on any
+   narrow viewport. Equal specificity would lose that fight based on source
+   order; this wins outright, at every width, regardless of it. */
+.gallery-modal-carousel .gallery-modal-nav {
   top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
 }
 
 .gallery-modal-prev {
