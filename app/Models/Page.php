@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
     'parent_id', 'title', 'slug', 'template', 'sort_order', 'is_published', 'show_in_nav', 'nav_anchor',
     'meta_title', 'meta_description', 'hero_heading', 'hero_subheading', 'hero_image', 'og_image', 'og_cta',
     'section_eyebrow', 'section_heading', 'body', 'bullets', 'buttons', 'circle_image', 'circle_image_alt',
-    'quote_id', 'card_excerpt', 'cta_eyebrow', 'cta_heading', 'cta_button_label',
+    'quote_id', 'card_excerpt', 'card_image', 'cta_eyebrow', 'cta_heading', 'cta_button_label',
 ])]
 class Page extends Model
 {
@@ -108,6 +108,18 @@ class Page extends Model
             'width' => $size[0] ?? null,
             'height' => $size[1] ?? null,
         ];
+    }
+
+    /**
+     * The image shown for this page's card in the services feature grid
+     * (homepage and the Services index) -- a dedicated card_image if the
+     * client has picked one, otherwise the page's own hero_image, so every
+     * card gets a real, on-brand photo immediately rather than a generic
+     * placeholder while cards are rolled out.
+     */
+    public function resolvedCardImage(): ?string
+    {
+        return $this->card_image ?: $this->hero_image;
     }
 
     /** @return BelongsTo<Page, $this> */

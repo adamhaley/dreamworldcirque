@@ -191,6 +191,32 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_shows_the_card_image_on_the_services_index_when_set(): void
+    {
+        $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
+        Page::factory()->template(PageTemplate::Service)->create([
+            'parent_id' => $services->id, 'card_image' => 'pages/card.jpg', 'hero_image' => 'pages/hero.jpg',
+        ]);
+
+        $response = $this->get('/services/');
+
+        $response->assertSee('<img src="/storage/pages/card.jpg"', escape: false);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_hero_image_for_the_card_when_no_card_image_is_set(): void
+    {
+        $services = Page::factory()->template(PageTemplate::ServicesIndex)->create(['slug' => 'services']);
+        Page::factory()->template(PageTemplate::Service)->create([
+            'parent_id' => $services->id, 'card_image' => null, 'hero_image' => 'pages/hero.jpg',
+        ]);
+
+        $response = $this->get('/services/');
+
+        $response->assertSee('<img src="/storage/pages/hero.jpg"', escape: false);
+    }
+
+    #[Test]
     public function it_hides_unpublished_pages_from_guests(): void
     {
         Page::factory()->unpublished()->create(['slug' => 'draft']);
