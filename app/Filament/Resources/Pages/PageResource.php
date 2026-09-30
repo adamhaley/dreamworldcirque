@@ -150,6 +150,15 @@ class PageResource extends Resource
                 ->visible(fn (Get $get): bool => self::template($get) === PageTemplate::Service)
                 ->schema([
                     Textarea::make('card_excerpt')->label('Card text')->rows(2),
+                    FileUpload::make('card_image')
+                        ->label('Card image')
+                        ->helperText('Shown at the top of this service\'s card. Leave empty to use the hero image above.')
+                        ->image()
+                        ->imageEditor()
+                        ->imageEditorAspectRatios(['4:3'])
+                        ->disk('public')
+                        ->directory('pages')
+                        ->visibility('public'),
                 ]),
 
             Section::make('Call to action')

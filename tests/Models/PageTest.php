@@ -97,4 +97,28 @@ class PageTest extends TestCase
 
         Storage::disk('public')->assertMissing(Page::ogImageStoragePathFor($page->id));
     }
+
+    #[Test]
+    public function it_prefers_the_dedicated_card_image_over_the_hero_image(): void
+    {
+        $page = Page::factory()->create(['hero_image' => 'pages/hero.jpg', 'card_image' => 'pages/card.jpg']);
+
+        $this->assertSame('pages/card.jpg', $page->resolvedCardImage());
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_hero_image_when_no_card_image_is_set(): void
+    {
+        $page = Page::factory()->create(['hero_image' => 'pages/hero.jpg', 'card_image' => null]);
+
+        $this->assertSame('pages/hero.jpg', $page->resolvedCardImage());
+    }
+
+    #[Test]
+    public function it_has_no_card_image_when_neither_is_set(): void
+    {
+        $page = Page::factory()->create(['hero_image' => null, 'card_image' => null]);
+
+        $this->assertNull($page->resolvedCardImage());
+    }
 }

@@ -782,12 +782,69 @@ a {
   flex-direction: column;
   padding: 1.5rem;
   position: relative;
+  /* Clips .feature-card-media's negative margin (below) to the card's own
+     rounded corners, so a full-bleed top image reads as part of the card
+     rather than a rectangle poking out past it. */
+  overflow: hidden;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
 .feature-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-soft);
+}
+
+.feature-card-media {
+  /* Escapes the card's own padding on three sides so the image runs
+     edge-to-edge at the top, instead of floating inset within it. */
+  margin: -1.5rem -1.5rem 1.25rem;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  position: relative;
+}
+
+/* A flat scrim over the whole photo, not just a band behind the text --
+   darkens every service photo by the same uniform amount regardless of its
+   own brightness, so white text reads reliably wherever it sits rather than
+   only where a band happens to be. */
+.feature-card-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(8, 8, 10, 0.35);
+}
+
+/* .feature-card .feature-card-media h3, not just .feature-card-media h3 --
+   equal specificity to .feature-card h3 (below) would otherwise let source
+   order decide which margin wins, the same fragile trap as the gallery
+   nav-arrow bug earlier. This wins outright regardless of ordering. */
+.feature-card .feature-card-media h3 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  /* The full-image scrim above already does the legibility work; a text
+     shadow is just a little extra insurance right at the letterforms. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.feature-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Same hover-zoom treatment as the gallery thumbnails (.thumbnail-item
+     img) -- an established "this is clickable" cue on this site already,
+     not a new interaction pattern. */
+  transition: transform 220ms ease;
+}
+
+.feature-card:hover .feature-card-media img {
+  transform: scale(1.05);
 }
 
 /* Makes the whole card clickable through the one real link inside it
@@ -798,6 +855,13 @@ a {
   content: "";
   position: absolute;
   inset: 0;
+  /* Explicitly above the image scrim (z-index: 1) and overlaid title
+     (z-index: 2) -- without this it had no z-index of its own, so once the
+     image area gained stacked children of its own, the cursor (and click
+     target) over the photo itself no longer reliably resolved to this
+     whole-card overlay. */
+  z-index: 3;
+  cursor: pointer;
 }
 
 .feature-card h3 {
