@@ -813,6 +813,13 @@ a {
   inset: 0;
   z-index: 1;
   background: rgba(8, 8, 10, 0.35);
+  transition: opacity 220ms ease;
+}
+
+/* Lets the true, untinted photo show through on hover -- the title's own
+   text-shadow (below) is what keeps it legible once the scrim fades. */
+.feature-card:hover .feature-card-media::after {
+  opacity: 0;
 }
 
 /* .feature-card .feature-card-media h3, not just .feature-card-media h3 --
