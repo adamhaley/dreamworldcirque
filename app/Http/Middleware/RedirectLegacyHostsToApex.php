@@ -18,15 +18,17 @@ class RedirectLegacyHostsToApex
      * dynamically-generated callback URL didn't match any registered
      * redirect URI, since only the bare domain was ever registered).
      *
-     * `dreamworldcircus.com` (+ its own `www.`): a separate, misspelled
-     * domain Adam also owns, pointed at this same server purely to redirect
-     * stray traffic to the real one -- not meant to ever serve the app.
+     * `www.dreamworldcircus.com`: the bare `dreamworldcircus.com` (an
+     * alternate English spelling Adam also owns) deliberately serves the
+     * app directly instead of redirecting -- see site.blade.php's
+     * `<link rel="canonical">` and the GA4 host gate, which both treat it
+     * as a second legitimate production host, not a legacy one. Its `www.`
+     * variant still canonicalizes here, same as the real domain's.
      *
      * @var list<string>
      */
     private const LEGACY_HOSTS = [
         'www.dreamworldcirque.com',
-        'dreamworldcircus.com',
         'www.dreamworldcircus.com',
     ];
 

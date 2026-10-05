@@ -27,18 +27,30 @@
       $ogTitle = $page->meta_title ?: $page->title.' | Dream World Cirque';
       $ogDescription = $page->meta_description ?: 'Boutique aerial and cirque entertainment for weddings, corporate events, and branded activations.';
       $ogImageMeta = $page->resolvedOgImage();
-      // Guards against counting hits on Jena's staging subdomain -- both hosts
-      // share this one app/config, so APP_NOINDEX can't tell them apart once
-      // it's flipped false for production.
-      $isProductionHost = request()->getHost() === parse_url(config('app.url'), PHP_URL_HOST);
+      // dreamworldcircus.com (an alternate English spelling Adam also owns)
+      // serves this same app directly rather than redirecting -- see
+      // RedirectLegacyHostsToApex's own docblock. Always build the
+      // canonical/OG URL from the one real domain, regardless of which host
+      // actually served the request, so search engines and anything a
+      // visitor shares both point at the single authoritative URL instead
+      // of fragmenting across two live, independently-crawlable domains.
+      $canonicalUrl = rtrim(config('app.url'), '/').$page->url();
+      // Which hosts actually count as "this site" for analytics -- the real
+      // domain plus its English-spelling twin, but never Jena's staging
+      // subdomain, which shares this one app/config and would otherwise mix
+      // her admin-work traffic into the same numbers once APP_NOINDEX is
+      // flipped false for production.
+      $productionHosts = [parse_url(config('app.url'), PHP_URL_HOST), 'dreamworldcircus.com'];
+      $isProductionHost = in_array(request()->getHost(), $productionHosts, true);
     @endphp
     <title>{{ $ogTitle }}</title>
     @if ($page->meta_description)
     <meta name="description" content="{{ $page->meta_description }}" />
     @endif
+    <link rel="canonical" href="{{ $canonicalUrl }}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dream World Cirque" />
-    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:url" content="{{ $canonicalUrl }}" />
     <meta property="og:title" content="{{ $ogTitle }}" />
     <meta property="og:description" content="{{ $ogDescription }}" />
     <meta property="og:image" content="{{ $ogImageMeta['url'] }}" />

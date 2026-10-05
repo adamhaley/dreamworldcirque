@@ -383,6 +383,29 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_includes_the_ga4_snippet_on_the_alternate_spelling_domain_too(): void
+    {
+        config(['app.url' => 'https://dreamworldcirque.com', 'site.google_analytics_id' => 'G-TEST12345']);
+        Page::factory()->home()->create();
+
+        $response = $this->get('https://dreamworldcircus.com/');
+
+        $response->assertSee('googletagmanager.com/gtag/js?id=G-TEST12345', escape: false);
+    }
+
+    #[Test]
+    public function it_always_points_the_canonical_url_at_the_real_domain_regardless_of_the_request_host(): void
+    {
+        config(['app.url' => 'https://dreamworldcirque.com']);
+        Page::factory()->create(['slug' => 'about']);
+
+        $response = $this->get('https://dreamworldcircus.com/about/');
+
+        $response->assertSee('<link rel="canonical" href="https://dreamworldcirque.com/about/" />', escape: false);
+        $response->assertSee('<meta property="og:url" content="https://dreamworldcirque.com/about/" />', escape: false);
+    }
+
+    #[Test]
     public function it_overrides_the_accent_color_when_one_is_set(): void
     {
         Page::factory()->home()->create();
