@@ -18,6 +18,7 @@ class LegacyUrlRedirectTest extends TestCase
         yield 'showcase' => ['/showcase.html', '/gallery/'];
         yield 'video' => ['/video.html', '/'];
         yield 'homepage' => ['/index.html', '/'];
+        yield 'muse default export' => ['/default.htm', '/'];
     }
 
     #[Test]

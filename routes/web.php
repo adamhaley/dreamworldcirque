@@ -38,6 +38,10 @@ Route::permanentRedirect('/get-a-quote.html', '/contact/');
 Route::permanentRedirect('/showcase.html', '/gallery/');
 Route::permanentRedirect('/video.html', '/');
 Route::permanentRedirect('/index.html', '/');
+// Muse's own default export filename for the homepage -- caught via
+// Search Console flagging it as a 404 still being crawled from the old
+// site, not something currently linked anywhere on the new one.
+Route::permanentRedirect('/default.htm', '/');
 
 Route::get('/', PageController::class)->name('page.home');
 Route::fallback(PageController::class)->name('page.show');
