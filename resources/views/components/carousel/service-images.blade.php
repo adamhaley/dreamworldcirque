@@ -1,6 +1,6 @@
 @props(['photos', 'page'])
 @php($carouselId = 'service-carousel-'.$page->id)
-<div id="{{ $carouselId }}" class="carousel-shell service-carousel surface-card @if ($photos->count() > 1) carousel slide @endif" @if ($photos->count() > 1) data-bs-touch="true" data-bs-ride="carousel" data-bs-interval="4500" @endif>
+<div id="{{ $carouselId }}" class="carousel-shell service-carousel surface-card @if ($photos->count() > 1) carousel slide carousel-fade @endif" @if ($photos->count() > 1) data-bs-touch="true" data-bs-ride="carousel" data-bs-interval="4500" @endif>
   <div class="carousel-viewport">
     <div class="carousel-inner carousel-track" aria-live="polite">
       @foreach ($photos as $photo)
