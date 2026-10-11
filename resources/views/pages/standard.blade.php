@@ -13,6 +13,22 @@
   />
   @endif
 
+  @isset($servicePhotos)
+    @if ($servicePhotos->isNotEmpty())
+      <section class="section">
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">{{ $page->title }}</p>
+              <h2 class="section-title">See it in action.</h2>
+            </div>
+          </div>
+          <x-carousel.service-images :photos="$servicePhotos" :page="$page" />
+        </div>
+      </section>
+    @endif
+  @endisset
+
   @if ($page->quote)
   <section class="section">
     <div class="container">

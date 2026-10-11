@@ -1094,6 +1094,30 @@ a {
   border-radius: var(--radius-md);
 }
 
+.service-carousel {
+  --carousel-media-height: clamp(18rem, 48vw, 36rem);
+  --carousel-image-fit: contain;
+}
+
+.service-carousel-media {
+  position: relative;
+}
+
+.service-carousel-placeholder {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: calc(100% - 2rem);
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: right;
+}
+
 .codette-carousel-caption {
   max-width: 38rem;
   min-height: 3.5rem;

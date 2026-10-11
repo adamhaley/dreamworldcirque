@@ -10,6 +10,8 @@ use App\Filament\Resources\Pages\Pages\ListPages;
 use App\Models\Page;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -57,6 +59,28 @@ class PageResourceTest extends TestCase
             ->assertHasNoFormErrors();
 
         $this->assertSame('Aerial magic', $page->fresh()->hero_heading);
+    }
+
+    #[Test]
+    public function it_lets_an_editor_manage_ordered_photos_from_the_service_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Storage::fake('public');
+        $page = Page::factory()->template(PageTemplate::Service)->create();
+
+        Livewire::test(EditPage::class, ['record' => $page->getRouteKey()])
+            ->fillForm(['servicePhotos' => [
+                ['image' => [UploadedFile::fake()->image('first.jpg')], 'alt' => 'First act', 'caption' => 'Opening act'],
+                ['image' => [UploadedFile::fake()->image('second.jpg')], 'alt' => 'Second act', 'caption' => 'Finale'],
+            ]])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(['First act', 'Second act'], $page->servicePhotos()->pluck('alt')->all());
+        $this->assertSame([1, 2], $page->servicePhotos()->pluck('sort_order')->all());
+        foreach ($page->servicePhotos()->pluck('image') as $image) {
+            Storage::disk('public')->assertExists($image);
+        }
     }
 
     #[Test]

@@ -161,6 +161,35 @@ class PageResource extends Resource
                         ->visibility('public'),
                 ]),
 
+            Section::make('Service carousel')
+                ->description('Photos appear in this service page in the order shown below. Remove temporary examples when the client photos arrive.')
+                ->visible(fn (Get $get): bool => self::template($get) === PageTemplate::Service)
+                ->schema([
+                    Repeater::make('servicePhotos')
+                        ->label('Photos')
+                        ->relationship()
+                        ->orderColumn('sort_order')
+                        ->reorderable()
+                        ->defaultItems(0)
+                        ->schema([
+                            FileUpload::make('image')
+                                ->image()
+                                ->imageEditor()
+                                ->disk('public')
+                                ->directory('service-photos')
+                                ->visibility('public')
+                                ->required(),
+                            TextInput::make('alt')
+                                ->label('Alt text')
+                                ->helperText('Describe what is in this photo for screen readers.')
+                                ->required(),
+                            TextInput::make('caption'),
+                            Toggle::make('is_placeholder')
+                                ->label('Temporary placeholder')
+                                ->helperText('Adds a visible placeholder label with the service name.'),
+                        ]),
+                ]),
+
             Section::make('Call to action')
                 ->description('The banner at the bottom of the page. Leave the heading empty to hide it.')
                 ->hidden(fn (Get $get): bool => in_array(self::template($get), [PageTemplate::Home, PageTemplate::Contact], true))

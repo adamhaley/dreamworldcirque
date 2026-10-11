@@ -134,6 +134,12 @@ class Page extends Model
         return $this->hasMany(Page::class, 'parent_id')->orderBy('sort_order');
     }
 
+    /** @return HasMany<ServicePhoto, $this> */
+    public function servicePhotos(): HasMany
+    {
+        return $this->hasMany(ServicePhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     /** @return BelongsTo<Quote, $this> */
     public function quote(): BelongsTo
     {

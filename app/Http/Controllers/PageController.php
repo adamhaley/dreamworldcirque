@@ -59,6 +59,9 @@ class PageController extends Controller
             PageTemplate::Gallery => [
                 'photos' => GalleryPhoto::query()->orderBy('sort_order')->get(),
             ],
+            PageTemplate::Service => [
+                'servicePhotos' => $page->servicePhotos()->get(),
+            ],
             PageTemplate::Faq => [
                 'faqItems' => FaqItem::query()->orderBy('sort_order')->get(),
             ],

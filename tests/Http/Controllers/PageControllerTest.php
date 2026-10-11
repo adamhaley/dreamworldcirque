@@ -8,6 +8,7 @@ use App\Models\FaqItem;
 use App\Models\GalleryPhoto;
 use App\Models\Page;
 use App\Models\Quote;
+use App\Models\ServicePhoto;
 use App\Models\SiteSetting;
 use App\Models\Spotlight;
 use App\Models\User;
@@ -160,6 +161,51 @@ class PageControllerTest extends TestCase
         $response = $this->get('/services/aerial/');
 
         $response->assertOk()->assertSee('Aerial acts');
+    }
+
+    #[Test]
+    public function it_omits_the_service_carousel_when_there_are_no_photos(): void
+    {
+        Page::factory()->template(PageTemplate::Service)->create(['slug' => 'aerial']);
+
+        $this->get('/aerial/')
+            ->assertOk()
+            ->assertDontSee('service-carousel-', escape: false);
+    }
+
+    #[Test]
+    public function it_renders_one_service_photo_without_navigation(): void
+    {
+        $page = Page::factory()->template(PageTemplate::Service)->create(['slug' => 'aerial']);
+        ServicePhoto::factory()->for($page)->create([
+            'image' => 'service-photos/aerial.jpg',
+            'alt' => 'Aerialist on a silk',
+            'caption' => 'A silk performance',
+            'is_placeholder' => true,
+        ]);
+
+        $this->get('/aerial/')
+            ->assertOk()
+            ->assertSee('service-carousel-'.$page->id)
+            ->assertSee('Aerialist on a silk')
+            ->assertSee('A silk performance')
+            ->assertSee('Placeholder for '.$page->title)
+            ->assertDontSee('data-bs-slide="next"', escape: false);
+    }
+
+    #[Test]
+    public function it_renders_multiple_service_photos_in_order_with_navigation(): void
+    {
+        $page = Page::factory()->template(PageTemplate::Service)->create(['slug' => 'aerial']);
+        ServicePhoto::factory()->for($page)->create(['alt' => 'Second photo', 'sort_order' => 2]);
+        ServicePhoto::factory()->for($page)->create(['alt' => 'First photo', 'sort_order' => 1]);
+
+        $response = $this->get('/aerial/')->assertOk();
+
+        $response->assertSeeInOrder(['First photo', 'Second photo'])
+            ->assertSee('data-bs-slide="prev"', escape: false)
+            ->assertSee('data-bs-slide="next"', escape: false)
+            ->assertSee('bootstrap.bundle.min.js');
     }
 
     #[Test]
