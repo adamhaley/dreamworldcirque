@@ -29,7 +29,7 @@ class NewContactSubmissionTest extends TestCase
 
         $mail = (new NewContactSubmission($prospect))->toMail(new AnonymousNotifiable);
 
-        $this->assertSame('New Dream World Cirque inquiry', $mail->subject);
+        $this->assertSame('New Dream World Cirque inquiry from Jo Riggs', $mail->subject);
         $this->assertSame([
             'Name: Jo Riggs',
             'Email: jo@example.com',
