@@ -30,4 +30,17 @@ class ProspectReplyMailTest extends TestCase
 
         $mail->assertHasSubject('Re: Your inquiry to Dream World Cirque');
     }
+
+    #[Test]
+    public function it_sends_the_reply_text_verbatim_without_html_escaping(): void
+    {
+        $mail = new ProspectReplyMail(Prospect::factory()->make([
+            'final_reply' => "We'd love to help -- call between 10 am & 4 pm, \"anytime\" <really>.",
+        ]));
+
+        $this->assertSame(
+            "We'd love to help -- call between 10 am & 4 pm, \"anytime\" <really>.",
+            trim($mail->render()),
+        );
+    }
 }
