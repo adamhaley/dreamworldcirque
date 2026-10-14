@@ -1,1 +1,1 @@
-{{ $prospect->final_reply }}
+{!! $prospect->final_reply !!}

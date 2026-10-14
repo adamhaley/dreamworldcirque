@@ -44,7 +44,7 @@ class NewContactSubmission extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('New Dream World Cirque inquiry')
+            ->subject('New Dream World Cirque inquiry from '.$this->prospect->name)
             ->greeting('New contact form submission')
             ->line('Name: '.$this->prospect->name)
             ->line('Email: '.$this->prospect->email)
