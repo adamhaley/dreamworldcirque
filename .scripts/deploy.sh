@@ -17,5 +17,6 @@ $PHP artisan storage:link || true
 $PHP artisan config:cache
 $PHP artisan route:cache
 $PHP artisan view:cache
+$PHP artisan queue:restart
 
 $PHP artisan up
