@@ -48,6 +48,9 @@
     <meta name="description" content="{{ $page->meta_description }}" />
     @endif
     <link rel="canonical" href="{{ $canonicalUrl }}" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/assets/img/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dream World Cirque" />
     <meta property="og:url" content="{{ $canonicalUrl }}" />
