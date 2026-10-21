@@ -5,12 +5,14 @@ namespace App\Jobs;
 use App\Enums\ProspectStatus;
 use App\Events\RecordPipelineStatusChanged;
 use App\Models\Prospect;
+use App\Notifications\ProspectPipelineFailed;
 use App\Services\Prospects\ProspectClassificationService;
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\RateLimited;
+use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 class ClassifyProspect implements ShouldBeUnique, ShouldQueue
@@ -63,5 +65,12 @@ class ClassifyProspect implements ShouldBeUnique, ShouldQueue
     public function failed(?Throwable $exception): void
     {
         RecordPipelineStatusChanged::dispatch('prospects-pipeline');
+
+        $prospect = Prospect::query()->find($this->prospectId);
+
+        if ($prospect !== null) {
+            Notification::route('mail', config('mail.ops_alert_address'))
+                ->notify(new ProspectPipelineFailed($prospect, 'classification', $exception?->getMessage() ?? 'Unknown error'));
+        }
     }
 }
