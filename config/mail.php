@@ -117,4 +117,6 @@ return [
 
     'lead_notification_address' => env('LEAD_NOTIFICATION_EMAIL', 'jenacarpenter@gmail.com'),
 
+    'ops_alert_address' => env('OPS_ALERT_EMAIL', 'adamhaley@gmail.com'),
+
 ];
