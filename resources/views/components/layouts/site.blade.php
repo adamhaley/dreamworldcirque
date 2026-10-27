@@ -48,9 +48,13 @@
     <meta name="description" content="{{ $page->meta_description }}" />
     @endif
     <link rel="canonical" href="{{ $canonicalUrl }}" />
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" href="/assets/img/icon-192.png" type="image/png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" />
+    {{-- Drawn in the CMS accent color by FaviconController; the color doubles
+         as the cache-buster, so changing it in Site Settings shows up in
+         returning visitors' tabs instead of a stale cached icon. --}}
+    @php($faviconVersion = ltrim($settings->accentColor(), '#'))
+    <link rel="icon" href="/favicon-48.png?v={{ $faviconVersion }}" type="image/png" sizes="48x48" />
+    <link rel="icon" href="/favicon-192.png?v={{ $faviconVersion }}" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/favicon-180.png?v={{ $faviconVersion }}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dream World Cirque" />
     <meta property="og:url" content="{{ $canonicalUrl }}" />

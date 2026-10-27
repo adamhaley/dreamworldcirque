@@ -48,7 +48,7 @@ class AdminPanelProvider extends PanelProvider
             // the database before it's ready; Panel::getColors() only calls
             // this closure when a panel is actually being rendered.
             ->colors(fn (): array => [
-                'primary' => Color::hex(SiteSetting::current()->accent_color ?: SiteSetting::DefaultAccentColor),
+                'primary' => Color::hex(SiteSetting::current()->accentColor()),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
