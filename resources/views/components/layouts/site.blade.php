@@ -78,6 +78,12 @@
       gtag('config', '{{ config('site.google_analytics_id') }}');
     </script>
     @endif
+    {{-- The heading and body fonts, fetched ahead of the stylesheet so
+         they're ready by first paint. Paired with font-display: fallback in
+         styles.css, which is what stops the one-frame fallback-font flash on
+         the subpage hero title when navigating between pages. --}}
+    <link rel="preload" href="/assets/fonts/Catamaran-Latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/fonts/Lato-Regular-Latin.woff2" as="font" type="font/woff2" crossorigin />
     @stack('head')
     <link rel="stylesheet" href="/styles.css?v={{ filemtime(public_path('styles.css')) }}" />
     @if ($settings->accent_color)
