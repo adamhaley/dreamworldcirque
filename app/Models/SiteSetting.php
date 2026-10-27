@@ -15,4 +15,10 @@ class SiteSetting extends Model
     {
         return self::query()->firstOrCreate();
     }
+
+    /** The accent color to actually use: the CMS choice, or the default pink. */
+    public function accentColor(): string
+    {
+        return $this->accent_color ?: self::DefaultAccentColor;
+    }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Chat\AskChatQuestionController;
 use App\Http\Controllers\Chat\StoreChatLeadController;
+use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StoreContactSubmissionController;
@@ -27,6 +28,10 @@ Route::get('/robots.txt', fn () => response(
     "User-agent: *\nDisallow:".(config('site.noindex') ? ' /' : '')."\n",
     headers: ['Content-Type' => 'text/plain'],
 ));
+
+Route::get('/favicon-{size}.png', FaviconController::class)
+    ->whereIn('size', ['48', '180', '192'])
+    ->name('favicon');
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 

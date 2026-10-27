@@ -425,4 +425,15 @@ class PageControllerTest extends TestCase
 
         $response->assertDontSee('--color-accent:', escape: false);
     }
+
+    #[Test]
+    public function it_versions_the_favicon_links_by_the_accent_color(): void
+    {
+        Page::factory()->home()->create();
+        SiteSetting::current()->update(['accent_color' => '#9500a6']);
+
+        $response = $this->get('/');
+
+        $response->assertSee('<link rel="icon" href="/favicon-48.png?v=9500a6"', escape: false);
+    }
 }
