@@ -6,6 +6,7 @@ use App\Ai\Agents\ProspectReplyGenerator;
 use App\Enums\ProspectStatus;
 use App\Models\FaqItem;
 use App\Models\Prospect;
+use App\Models\ReplyExample;
 use Illuminate\Support\Str;
 
 class ProspectReplyGenerationService
@@ -41,6 +42,9 @@ Draft a reply to this inquiry.
 FAQ knowledge base:
 %s
 
+Jena's past replies (copy the voice, never the facts):
+%s
+
 Inquiry:
 Name: %s
 Form type: %s
@@ -48,6 +52,7 @@ Interests: %s
 Message: %s
 PROMPT,
             $this->formatFaqItems(),
+            $this->formatReplyExamples(),
             $prospect->name ?? '(not given)',
             $prospect->form_type ?? '(not given)',
             $prospect->interests !== null && $prospect->interests !== [] ? implode(', ', $prospect->interests) : '(none)',
@@ -70,6 +75,24 @@ PROMPT,
                 $item->question,
                 $index + 1,
                 strip_tags($item->answer),
+            ))
+            ->implode("\n\n");
+    }
+
+    private function formatReplyExamples(): string
+    {
+        $examples = ReplyExample::query()->active()->get();
+
+        if ($examples->isEmpty()) {
+            return 'No examples are available.';
+        }
+
+        return $examples
+            ->map(fn (ReplyExample $example, int $index): string => sprintf(
+                "--- Example %d ---\nTheir message:\n%s\n\nJena's reply:\n%s",
+                $index + 1,
+                $example->inquiry ?: '(not recorded)',
+                $example->reply,
             ))
             ->implode("\n\n");
     }
