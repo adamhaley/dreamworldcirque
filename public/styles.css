@@ -416,6 +416,21 @@ a {
   font-size: 0.85rem;
 }
 
+.footer-credit {
+  margin: 0.1rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.footer-credit a {
+  color: inherit;
+  transition: color 180ms ease;
+}
+
+.footer-credit a:hover {
+  color: var(--color-text);
+}
+
 .section {
   padding: var(--section-space) 0;
 }
