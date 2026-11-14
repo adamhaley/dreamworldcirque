@@ -9,9 +9,11 @@ use App\Jobs\GenerateProspectReply;
 use App\Mail\ProspectReplyMail;
 use App\Models\Prospect;
 use App\Models\User;
+use Generator;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -56,15 +58,38 @@ class ProspectTest extends TestCase
         Queue::assertPushed(GenerateProspectReply::class, fn (GenerateProspectReply $job): bool => $job->prospectId === $prospect->id);
     }
 
+    /**
+     * @return Generator<string, array{ProspectStatus}>
+     */
+    public static function nonValidDecisionProvider(): Generator
+    {
+        yield 'spam' => [ProspectStatus::Spam];
+        yield 'unanswerable' => [ProspectStatus::Unanswerable];
+    }
+
     #[Test]
-    public function marking_spam_does_not_dispatch_reply_generation(): void
+    #[DataProvider('nonValidDecisionProvider')]
+    public function it_does_not_dispatch_reply_generation_for_non_valid_decisions(ProspectStatus $status): void
     {
         Queue::fake();
         $prospect = Prospect::factory()->pendingReview()->create();
 
-        $prospect->markStatus(ProspectStatus::Spam, User::factory()->admin()->create()->id);
+        $prospect->markStatus($status, User::factory()->admin()->create()->id);
 
         Queue::assertNotPushed(GenerateProspectReply::class);
+    }
+
+    #[Test]
+    #[DataProvider('nonValidDecisionProvider')]
+    public function it_keeps_the_decided_status_for_non_valid_decisions(ProspectStatus $status): void
+    {
+        Queue::fake();
+        $prospect = Prospect::factory()->pendingReview()->create();
+
+        $prospect->markStatus($status, User::factory()->admin()->create()->id);
+
+        $this->assertSame($status, $prospect->refresh()->status);
+        $this->assertNotSame(ProspectStatus::DraftGenerating, $prospect->status);
     }
 
     #[Test]
