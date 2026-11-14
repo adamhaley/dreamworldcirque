@@ -59,6 +59,24 @@ class PageControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_renders_the_website_attribution_credit_in_the_footer(): void
+    {
+        Page::factory()->home()->create();
+
+        $response = $this->get('/');
+
+        $response
+            ->assertOk()
+            ->assertSee('<p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p>', escape: false)
+            ->assertSeeInOrder([
+                'footer-copyright',
+                '<p class="footer-tagline">A Boutique aerial and cirque entertainment company.</p>',
+                '<p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p>',
+                '</div>',
+            ], escape: false);
+    }
+
+    #[Test]
     #[DataProvider('plainTextBodyTemplates')]
     public function it_preserves_page_body_line_breaks_and_escapes_html(PageTemplate $template): void
     {
