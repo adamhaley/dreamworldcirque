@@ -11,21 +11,31 @@ use Illuminate\Support\Str;
 
 class ProspectReplyGenerationService
 {
+    /**
+     * Generate a draft reply, saving it only if the prospect is still awaiting one.
+     *
+     * The write is a single conditional UPDATE so a decision a reviewer made during
+     * the AI call (e.g. Unanswerable or Spam) is never overwritten; in that case the
+     * draft is discarded.
+     */
     public function generate(Prospect $prospect): Prospect
     {
         $response = app(ProspectReplyGenerator::class)->prompt($this->prompt($prospect));
 
         $reply = is_string($response['reply'] ?? null) ? trim($response['reply']) : '';
 
-        $prospect->update([
-            'generated_reply' => $reply,
-            'final_reply' => $reply,
-            'generation_reason' => is_string($response['reason'] ?? null)
-                ? $response['reason']
-                : 'Generator did not provide a usable reason.',
-            'generated_at' => now(),
-            'status' => ProspectStatus::DraftReady,
-        ]);
+        Prospect::query()
+            ->whereKey($prospect->getKey())
+            ->where('status', ProspectStatus::DraftGenerating)
+            ->update([
+                'generated_reply' => $reply,
+                'final_reply' => $reply,
+                'generation_reason' => is_string($response['reason'] ?? null)
+                    ? $response['reason']
+                    : 'Generator did not provide a usable reason.',
+                'generated_at' => now(),
+                'status' => ProspectStatus::DraftReady,
+            ]);
 
         return $prospect->refresh();
     }
