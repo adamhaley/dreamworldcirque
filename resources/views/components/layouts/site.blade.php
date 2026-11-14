@@ -138,7 +138,7 @@
             <a href="mailto:{{ $settings->contact_email }}" aria-label="Email"><x-icon.email /></a>
             @endif
           </div>
-          <div class="footer-text"><p class="footer-copyright">&copy; {{ now()->year }} Dream World Cirque</p><p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p><p class="footer-tagline">A Boutique aerial and cirque entertainment company.</p></div>
+          <div class="footer-text"><p class="footer-copyright">&copy; {{ now()->year }} Dream World Cirque</p><p class="footer-tagline">A Boutique aerial and cirque entertainment company.</p><p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p></div>
         </div>
       </footer>
       <x-chat-widget />
