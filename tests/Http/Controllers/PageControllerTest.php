@@ -67,7 +67,13 @@ class PageControllerTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('<p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p>', escape: false);
+            ->assertSee('<p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p>', escape: false)
+            ->assertSeeInOrder([
+                'footer-copyright',
+                '<p class="footer-tagline">A Boutique aerial and cirque entertainment company.</p>',
+                '<p class="footer-credit">Website by <a href="https://ahmedia.ai" target="_blank" rel="noopener noreferrer">AH Media</a></p>',
+                '</div>',
+            ], escape: false);
     }
 
     #[Test]
