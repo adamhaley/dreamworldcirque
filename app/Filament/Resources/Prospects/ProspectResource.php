@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Prospects;
 
 use App\Enums\ProspectStatus;
+use App\Filament\Forms\Components\GalleryPhotoCarousel;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Models\GalleryPhoto;
 use App\Models\Prospect;
@@ -14,7 +15,6 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
@@ -31,7 +31,6 @@ use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
@@ -342,12 +341,9 @@ class ProspectResource extends Resource
         return Section::make('Attachments')
             ->icon(Heroicon::PaperClip)
             ->schema([
-                CheckboxList::make('gallery_photo_ids')
+                GalleryPhotoCarousel::make('gallery_photo_ids')
                     ->label('Photos from the website')
-                    ->options(fn (): array => self::galleryPhotoOptions())
-                    ->allowHtml()
-                    ->columns(3)
-                    ->bulkToggleable(),
+                    ->stagedUploadsFrom('uploads'),
                 FileUpload::make('uploads')
                     ->label('Upload images')
                     ->multiple()
@@ -358,26 +354,6 @@ class ProspectResource extends Resource
                     ->visibility('private')
                     ->storeFileNamesIn('upload_names'),
             ]);
-    }
-
-    /**
-     * @return array<int, HtmlString>
-     */
-    private static function galleryPhotoOptions(): array
-    {
-        return GalleryPhoto::query()
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
-            ->mapWithKeys(fn (GalleryPhoto $photo): array => [
-                $photo->id => new HtmlString(sprintf(
-                    '<span style="display: inline-flex; align-items: center; gap: 0.5rem;"><img src="%s" alt="%s" style="width: 4rem; height: 4rem; object-fit: cover; border-radius: 0.25rem;"><span>%s</span></span>',
-                    e(Storage::disk('public')->url($photo->image)),
-                    e($photo->alt ?? ''),
-                    e($photo->alt ?: $photo->title ?: basename($photo->image)),
-                )),
-            ])
-            ->all();
     }
 
     private static function uploadDirectory(Prospect $record): string
