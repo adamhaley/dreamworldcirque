@@ -5,6 +5,7 @@ use App\Http\Controllers\Chat\AskChatQuestionController;
 use App\Http\Controllers\Chat\StoreChatLeadController;
 use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\ShowProspectReplyAttachmentController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\StoreContactSubmissionController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,10 @@ Route::permanentRedirect('/index.html', '/');
 // Search Console flagging it as a 404 still being crawled from the old
 // site, not something currently linked anywhere on the new one.
 Route::permanentRedirect('/default.htm', '/');
+
+Route::get('/admin/prospects/{prospect}/reply-attachments/{index}', ShowProspectReplyAttachmentController::class)
+    ->whereNumber('index')
+    ->name('admin.prospect-reply-attachments.show');
 
 Route::get('/', PageController::class)->name('page.home');
 Route::fallback(PageController::class)->name('page.show');
