@@ -6,14 +6,21 @@ use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
+use App\Mail\ProspectReplyMail;
+use App\Models\GalleryPhoto;
 use App\Models\Prospect;
 use App\Models\User;
+use App\Services\Prospects\ProspectReplyAttachmentService;
+use Filament\Actions\Testing\TestAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Generator;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -287,5 +294,132 @@ class ProspectResourceTest extends TestCase
         $listeners = (new ManageProspects)->getListeners();
 
         $this->assertSame(['echo-private:prospects-pipeline,.status.changed' => '$refresh'], $listeners);
+    }
+
+    /**
+     * @return list<TestAction>
+     */
+    private function replyAction(string $name, Prospect $prospect): array
+    {
+        return [
+            TestAction::make('review')->table($prospect),
+            TestAction::make($name)->schemaComponent(true, 'mountedActionSchema0'),
+        ];
+    }
+
+    private function galleryPhotoWithImage(): GalleryPhoto
+    {
+        $photo = GalleryPhoto::factory()->create();
+        Storage::disk('public')->put($photo->image, UploadedFile::fake()->image('photo.jpg', 400, 300)->getContent());
+
+        return $photo;
+    }
+
+    #[Test]
+    public function it_saves_the_chosen_gallery_photos_and_uploads_when_editing_a_reply(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        $photo = $this->galleryPhotoWithImage();
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('editDraftReply', $prospect), [
+                'final_reply' => 'Edited reply',
+                'gallery_photo_ids' => [$photo->id],
+                'uploads' => [UploadedFile::fake()->image('stage.png', 200, 200)],
+            ])
+            ->assertHasNoFormErrors();
+
+        $prospect->refresh();
+        $upload = $prospect->reply_attachments[1] ?? null;
+        $this->assertSame('Edited reply', $prospect->final_reply);
+        $this->assertEquals(['disk' => 'public', 'path' => $photo->image, 'name' => basename($photo->image)], $prospect->reply_attachments[0]);
+        $this->assertSame(['local', 'stage.png'], [$upload['disk'] ?? null, $upload['name'] ?? null]);
+        $this->assertCount(2, $prospect->reply_attachments);
+    }
+
+    #[Test]
+    public function it_stores_reply_uploads_privately_on_the_local_disk_under_the_prospect_folder(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('editDraftReply', $prospect), [
+                'final_reply' => 'Edited reply',
+                'uploads' => [UploadedFile::fake()->image('stage.jpg', 200, 200)],
+            ]);
+
+        $path = $prospect->refresh()->reply_attachments[0]['path'];
+        $this->assertStringStartsWith("prospect-replies/{$prospect->id}/", $path);
+        Storage::disk('local')->assertExists($path);
+        Storage::disk('public')->assertMissing($path);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
+    #[Test]
+    public function it_rejects_approve_and_send_with_more_than_ten_images(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        $photos = GalleryPhoto::factory()->count(11)->create();
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
+                'final_reply' => 'Final reply',
+                'gallery_photo_ids' => $photos->modelKeys(),
+            ])
+            ->assertNotified('Reply not sent');
+
+        $this->assertSame(ProspectStatus::DraftReady, $prospect->refresh()->status);
+        Mail::assertNothingSent();
+    }
+
+    #[Test]
+    public function it_rejects_approve_and_send_when_the_images_exceed_the_size_cap(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->app->instance(ProspectReplyAttachmentService::class, new ProspectReplyAttachmentService(maxTotalBytes: 10));
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        $photo = $this->galleryPhotoWithImage();
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
+                'final_reply' => 'Final reply',
+                'gallery_photo_ids' => [$photo->id],
+            ])
+            ->assertNotified('Reply not sent');
+
+        $this->assertSame(ProspectStatus::DraftReady, $prospect->refresh()->status);
+        Mail::assertNothingSent();
+    }
+
+    #[Test]
+    public function it_sends_an_approved_reply_without_attachments(): void
+    {
+        Mail::fake();
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
+                'final_reply' => 'Final reply',
+            ])
+            ->assertHasNoFormErrors();
+
+        $prospect->refresh();
+        $this->assertSame(ProspectStatus::Replied, $prospect->status);
+        $this->assertEmpty($prospect->reply_attachments);
+        Mail::assertSent(ProspectReplyMail::class);
     }
 }
