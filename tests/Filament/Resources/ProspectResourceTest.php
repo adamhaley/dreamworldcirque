@@ -4,6 +4,7 @@ namespace Tests\Filament\Resources;
 
 use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
+use App\Filament\Forms\Components\GalleryPhotoCarousel;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Mail\ProspectReplyMail;
@@ -359,6 +360,50 @@ class ProspectResourceTest extends TestCase
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
         $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
+    public static function replyActionProvider(): Generator
+    {
+        yield 'edit reply' => ['editDraftReply'];
+        yield 'approve and send' => ['approveDraftAndSend'];
+    }
+
+    #[Test]
+    #[DataProvider('replyActionProvider')]
+    public function it_picks_gallery_photos_with_the_carousel_field_in_both_reply_actions(string $action): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        GalleryPhoto::factory()->create();
+
+        $component = Livewire::test(ManageProspects::class)
+            ->mountAction($this->replyAction($action, $prospect))
+            ->assertFormFieldExists('gallery_photo_ids', fn (mixed $field): bool => $field instanceof GalleryPhotoCarousel);
+
+        $this->assertStringContainsString('gpc-track', implode('', $component->effects['partials'] ?? []));
+    }
+
+    #[Test]
+    public function it_saves_and_attaches_the_chosen_gallery_photos_when_approving_and_sending(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        $photos = collect([$this->galleryPhotoWithImage(), $this->galleryPhotoWithImage()]);
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
+                'final_reply' => 'Final reply',
+                'gallery_photo_ids' => $photos->pluck('id')->all(),
+            ])
+            ->assertHasNoFormErrors();
+
+        $prospect->refresh();
+        $this->assertSame(ProspectStatus::Replied, $prospect->status);
+        $this->assertSame($photos->pluck('image')->all(), array_column($prospect->reply_attachments, 'path'));
+        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => count($mail->attachments()) === 2);
     }
 
     #[Test]
