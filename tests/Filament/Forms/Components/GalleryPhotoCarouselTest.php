@@ -59,7 +59,7 @@ class GalleryPhotoCarouselTest extends TestCase
 
     #[Test]
     #[DataProvider('replyActionProvider')]
-    public function it_renders_each_gallery_photo_with_its_alt_text_as_a_caption(string $action): void
+    public function it_renders_each_gallery_photo_with_its_alt_text_as_title_and_alt_without_a_caption(string $action): void
     {
         $prospect = Prospect::factory()->draftReady()->create();
         $photo = GalleryPhoto::factory()->create(['alt' => 'Aerial silks over the stage']);
@@ -70,7 +70,9 @@ class GalleryPhotoCarouselTest extends TestCase
 
         $this->assertStringContainsString('data-photo-id="'.$photo->id.'"', $html);
         $this->assertStringContainsString('src="'.e(Storage::disk('public')->url($photo->image)).'"', $html);
-        $this->assertStringContainsString('Aerial silks over the stage', $html);
+        $this->assertStringContainsString('title="Aerial silks over the stage"', $html);
+        $this->assertStringContainsString('alt="Aerial silks over the stage"', $html);
+        $this->assertStringNotContainsString('gpc-caption', $html);
     }
 
     #[Test]

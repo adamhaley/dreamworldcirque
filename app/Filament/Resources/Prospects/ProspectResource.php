@@ -18,6 +18,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
@@ -31,6 +32,7 @@ use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
@@ -240,6 +242,7 @@ class ProspectResource extends Resource
                                 self::approveAndSendAction('approveDraftAndSend'),
                             ])->alignEnd(),
                             TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
+                            self::sentReplyAttachmentsEntry(),
                         ]),
 
                     Section::make('Edited Reply')
@@ -247,6 +250,7 @@ class ProspectResource extends Resource
                         ->schema([
                             TextEntry::make('final_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
                             TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
+                            self::sentReplyAttachmentsEntry(),
                             Actions::make([
                                 self::editReplyAction('editEditedReply'),
                                 self::approveAndSendAction('approveEditedAndSend'),
@@ -453,6 +457,37 @@ class ProspectResource extends Resource
         return [
             'index' => ManageProspects::route('/'),
         ];
+    }
+
+    private static function sentReplyAttachmentsEntry(): ViewEntry
+    {
+        return ViewEntry::make('sent_reply_attachments')
+            ->hiddenLabel()
+            ->columnSpanFull()
+            ->view('filament.infolists.sent-reply-attachments')
+            ->viewData(fn (Prospect $record): array => ['attachments' => self::sentReplyAttachmentViewData($record)])
+            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied && self::sentReplyAttachmentViewData($record) !== []);
+    }
+
+    /**
+     * @return list<array{name: string, url: string}>
+     */
+    private static function sentReplyAttachmentViewData(Prospect $record): array
+    {
+        $attachments = [];
+
+        foreach (array_values($record->reply_attachments ?? []) as $index => $entry) {
+            $attachment = ProspectReplyAttachmentData::fromArray($entry);
+
+            $attachments[] = [
+                'name' => $attachment->originalName,
+                'url' => $attachment->disk === 'public'
+                    ? Storage::disk('public')->url($attachment->path)
+                    : route('admin.prospect-reply-attachments.show', [$record, $index]),
+            ];
+        }
+
+        return $attachments;
     }
 
     private static function spinningStatusIcon(): HtmlString
