@@ -62,14 +62,40 @@ class SentReplyAttachmentsTest extends TestCase
     }
 
     #[Test]
-    public function it_hides_the_sent_attachments_list_for_an_unsent_draft(): void
+    public function it_shows_the_saved_images_in_the_draft_ready_slide_over_between_the_reply_and_the_actions(): void
     {
-        $prospect = Prospect::factory()->draftReady()->withReplyAttachments()->create();
+        $prospect = Prospect::factory()->draftReady()->withReplyAttachments()->create(['generated_reply' => 'Draft body text', 'final_reply' => null]);
 
         $html = $this->reviewHtml($prospect);
 
-        $this->assertStringNotContainsString('data-test="sent-reply-attachments"', $html);
-        $this->assertStringNotContainsString('custom-quote.png', $html);
+        $this->assertSame(1, substr_count($html, 'data-test="sent-reply-attachments"'));
+        $this->assertStringContainsString('custom-quote.png', $html);
+        $reply = strpos($html, 'Draft body text');
+        $images = strpos($html, 'data-test="sent-reply-attachments"');
+        $actions = strpos($html, 'Approve &amp; Send');
+        $this->assertTrue($reply < $images && $images < $actions);
+    }
+
+    #[Test]
+    public function it_shows_the_saved_images_in_the_edited_reply_variant_once(): void
+    {
+        $prospect = Prospect::factory()->draftReady()->withReplyAttachments()->create([
+            'generated_reply' => 'Draft body text',
+            'final_reply' => 'Edited body text',
+        ]);
+
+        $html = $this->reviewHtml($prospect);
+
+        $this->assertSame(1, substr_count($html, 'data-test="sent-reply-attachments"'));
+        $this->assertTrue(strpos($html, 'Edited body text') < strpos($html, 'data-test="sent-reply-attachments"'));
+    }
+
+    #[Test]
+    public function it_shows_no_images_in_the_draft_ready_slide_over_when_there_are_none(): void
+    {
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => null]);
+
+        $this->assertStringNotContainsString('data-test="sent-reply-attachments"', $this->reviewHtml($prospect));
     }
 
     private function reviewHtml(Prospect $prospect): string

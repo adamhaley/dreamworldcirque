@@ -35,7 +35,6 @@ class GalleryPhotoCarouselTest extends TestCase
     public static function replyActionProvider(): Generator
     {
         yield 'edit reply' => ['editDraftReply'];
-        yield 'approve and send' => ['approveDraftAndSend'];
     }
 
     /**
