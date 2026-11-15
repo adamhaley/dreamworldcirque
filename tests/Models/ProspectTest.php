@@ -143,4 +143,27 @@ class ProspectTest extends TestCase
         $this->assertFalse($visible->contains($humanSpam->id));
         $this->assertFalse($visible->contains($aiSpam->id));
     }
+
+    #[Test]
+    public function reply_attachments_round_trip_as_an_array_of_entries(): void
+    {
+        Queue::fake();
+
+        $prospect = Prospect::factory()->withReplyAttachments()->create();
+
+        $this->assertEquals([
+            ['disk' => 'public', 'path' => 'gallery/stilt-walker.jpg', 'name' => 'stilt-walker.jpg'],
+            ['disk' => 'local', 'path' => 'prospect-replies/1/custom-quote.png', 'name' => 'custom-quote.png'],
+        ], $prospect->refresh()->reply_attachments);
+    }
+
+    #[Test]
+    public function reply_attachments_default_to_null(): void
+    {
+        Queue::fake();
+
+        $prospect = Prospect::factory()->create();
+
+        $this->assertNull($prospect->refresh()->reply_attachments);
+    }
 }
