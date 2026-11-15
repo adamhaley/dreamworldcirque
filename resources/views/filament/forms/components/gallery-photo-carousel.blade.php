@@ -18,7 +18,6 @@
         .gpc-photo[aria-pressed="true"] .gpc-frame { box-shadow: 0 0 0 3px var(--primary-500); }
         .gpc-photo:focus-visible { outline: 2px solid var(--primary-500); outline-offset: 2px; }
         .gpc-check { position: absolute; top: 0.375rem; right: 0.375rem; display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 9999px; background: var(--primary-600); color: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.3); }
-        .gpc-caption { margin-top: 0.375rem; font-size: 0.75rem; line-height: 1rem; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gpc-arrow { position: absolute; top: 40%; transform: translateY(-50%); z-index: 1; display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 9999px; border: 0; cursor: pointer; background: rgb(255 255 255 / 0.9); color: var(--gray-700); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25), 0 0 0 1px color-mix(in oklab, var(--gray-950) 10%, transparent); }
         .gpc-arrow:hover { background: #fff; color: var(--gray-950); }
         .gpc-arrow:disabled { opacity: 0; pointer-events: none; }
@@ -40,7 +39,6 @@
         .dark .gpc-frame { background: color-mix(in oklab, #fff 5%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, #fff 10%, transparent); }
         .dark .gpc-photo[aria-pressed="true"] .gpc-frame { box-shadow: 0 0 0 3px var(--primary-400); }
         .dark .gpc-check { background: var(--primary-500); }
-        .dark .gpc-caption { color: var(--gray-400); }
         .dark .gpc-arrow { background: color-mix(in oklab, var(--gray-900) 90%, transparent); color: var(--gray-200); box-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 0 0 1px color-mix(in oklab, #fff 10%, transparent); }
         .dark .gpc-arrow:hover { background: var(--gray-800); color: #fff; }
         .dark .gpc-staged { background: color-mix(in oklab, #fff 5%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, #fff 10%, transparent); }
@@ -143,7 +141,6 @@
                                         <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::Check" style="width: 1rem; height: 1rem;" />
                                     </span>
                                 </span>
-                                <span class="gpc-caption block truncate text-xs text-gray-600 dark:text-gray-400">{{ $photo['label'] }}</span>
                             </button>
                         </div>
                     @endforeach
