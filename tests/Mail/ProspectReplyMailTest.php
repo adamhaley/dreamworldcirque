@@ -3,7 +3,11 @@
 namespace Tests\Mail;
 
 use App\Mail\ProspectReplyMail;
+use App\Models\GalleryPhoto;
 use App\Models\Prospect;
+use Closure;
+use Illuminate\Mail\Attachment;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -50,5 +54,85 @@ class ProspectReplyMailTest extends TestCase
             "We'd love to help -- call between 10 am & 4 pm, \"anytime\" <really>.",
             trim($mail->render()),
         );
+    }
+
+    #[Test]
+    public function it_attaches_the_gallery_photo_and_the_upload(): void
+    {
+        $mail = new ProspectReplyMail($this->prospectWithAttachments());
+
+        $this->assertSame(['gallery-shot.jpg', 'upload.jpg'], array_keys($this->attachedFiles($mail)));
+    }
+
+    #[Test]
+    public function it_has_no_attachments_when_the_prospect_has_none(): void
+    {
+        $withNull = new ProspectReplyMail(Prospect::factory()->draftReady()->make(['reply_attachments' => null]));
+        $withEmpty = new ProspectReplyMail(Prospect::factory()->draftReady()->make(['reply_attachments' => []]));
+
+        $this->assertSame([], $withNull->attachments());
+        $this->assertSame([], $withEmpty->attachments());
+    }
+
+    #[Test]
+    public function it_attaches_resized_jpeg_copies_instead_of_the_originals(): void
+    {
+        $mail = new ProspectReplyMail($this->prospectWithAttachments());
+
+        $sizes = array_map(
+            fn (string $contents): array => getimagesizefromstring($contents),
+            $this->attachedFiles($mail),
+        );
+
+        $this->assertSame('image/jpeg', $sizes['upload.jpg']['mime']);
+        $this->assertSame(1600, $sizes['upload.jpg'][0]);
+        $this->assertSame(800, $sizes['upload.jpg'][1]);
+        $this->assertSame('image/jpeg', $sizes['gallery-shot.jpg']['mime']);
+        $this->assertSame(100, $sizes['gallery-shot.jpg'][0]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function attachedFiles(ProspectReplyMail $mail): array
+    {
+        $files = [];
+
+        foreach ($mail->attachments() as $attachment) {
+            $attachment->attachWith(
+                fn (): null => null,
+                function (Closure $data, Attachment $attachment) use (&$files): void {
+                    $files[$attachment->as] = $data();
+                },
+            );
+        }
+
+        return $files;
+    }
+
+    private function prospectWithAttachments(): Prospect
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $photo = GalleryPhoto::factory()->create(['image' => 'gallery/gallery-shot.png']);
+        Storage::disk('public')->put($photo->image, $this->pngOf(100, 50));
+        Storage::disk('local')->put('reply-attachments/upload.png', $this->pngOf(3200, 1600));
+
+        return Prospect::factory()->draftReady()->make([
+            'reply_attachments' => [
+                ['disk' => 'public', 'path' => $photo->image, 'name' => 'gallery-shot.png'],
+                ['disk' => 'local', 'path' => 'reply-attachments/upload.png', 'name' => 'upload.png'],
+            ],
+        ]);
+    }
+
+    private function pngOf(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor($width, $height);
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
     }
 }

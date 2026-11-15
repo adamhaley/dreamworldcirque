@@ -3,7 +3,10 @@
 namespace App\Mail;
 
 use App\Models\Prospect;
+use App\Services\Prospects\ProspectReplyAttachmentData;
+use App\Services\Prospects\ProspectReplyAttachmentService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
@@ -27,5 +30,29 @@ class ProspectReplyMail extends Mailable
             // the admin (it forwards to her Gmail).
             ->bcc('info@dreamworldcirque.com')
             ->text('emails.prospect-reply');
+    }
+
+    /**
+     * Resized JPEG copies of the images saved on the prospect; originals are never attached.
+     *
+     * @return list<Attachment>
+     */
+    public function attachments(): array
+    {
+        $entries = $this->prospect->reply_attachments;
+
+        if ($entries === null || $entries === []) {
+            return [];
+        }
+
+        $prepared = app(ProspectReplyAttachmentService::class)->prepare(
+            array_map(ProspectReplyAttachmentData::fromArray(...), array_values($entries)),
+        );
+
+        return array_map(
+            fn ($copy): Attachment => Attachment::fromData(fn (): string => $copy->contents, $copy->filename)
+                ->withMime($copy->mime),
+            $prepared,
+        );
     }
 }
