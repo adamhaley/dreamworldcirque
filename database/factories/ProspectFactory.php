@@ -61,4 +61,14 @@ class ProspectFactory extends Factory
             'review_note' => 'Likely spam per legacy mailbox recovery (2026-09-02 automated flagging).',
         ]);
     }
+
+    public function withReplyAttachments(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'reply_attachments' => [
+                ['disk' => 'public', 'path' => 'gallery/stilt-walker.jpg', 'name' => 'stilt-walker.jpg'],
+                ['disk' => 'local', 'path' => 'prospect-replies/1/custom-quote.png', 'name' => 'custom-quote.png'],
+            ],
+        ]);
+    }
 }

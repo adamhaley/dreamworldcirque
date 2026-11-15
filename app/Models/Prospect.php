@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Mail;
 /**
  * @property list<string>|null $interests
  * @property array<string, mixed>|null $raw_payload
+ * @property list<array{disk: string, path: string, name: string}>|null $reply_attachments
  */
 #[Fillable([
     'source', 'source_external_id', 'submitted_at', 'form_type', 'name', 'email', 'email_mx_valid', 'phone', 'website',
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Mail;
     'classification', 'classification_confidence', 'classification_reason', 'human_classification', 'classified_at',
     'status', 'review_note', 'reviewed_by_user_id', 'reviewed_at',
     'generated_reply', 'final_reply', 'generation_reason', 'generated_at', 'replied_at',
-    'raw_payload',
+    'reply_attachments', 'raw_payload',
 ])]
 class Prospect extends Model
 {
@@ -50,6 +51,7 @@ class Prospect extends Model
             'reviewed_at' => 'datetime',
             'generated_at' => 'datetime',
             'replied_at' => 'datetime',
+            'reply_attachments' => 'array',
             'raw_payload' => 'array',
         ];
     }
