@@ -98,6 +98,25 @@ class SentReplyAttachmentsTest extends TestCase
         $this->assertStringNotContainsString('data-test="sent-reply-attachments"', $this->reviewHtml($prospect));
     }
 
+    #[Test]
+    public function it_renders_each_attachment_as_a_thumbnail_with_a_one_line_name_label(): void
+    {
+        $prospect = Prospect::factory()->draftReady()->create([
+            'status' => ProspectStatus::Replied,
+            'replied_at' => now(),
+            'reply_attachments' => [
+                ['disk' => 'public', 'path' => 'gallery/stilt-walker.jpg', 'name' => 'stilt-walker.jpg'],
+                ['disk' => 'local', 'path' => 'prospect-replies/1/custom-quote.png', 'name' => 'custom-quote.png'],
+            ],
+        ]);
+
+        $html = $this->reviewHtml($prospect);
+
+        $this->assertSame(2, substr_count($html, 'class="sra-thumb"'));
+        $this->assertMatchesRegularExpression('/<div class="sra-thumb-label" title="stilt-walker\.jpg">stilt-walker\.jpg<\/div>/', $html);
+        $this->assertMatchesRegularExpression('/<div class="sra-thumb-label" title="custom-quote\.png">custom-quote\.png<\/div>/', $html);
+    }
+
     private function reviewHtml(Prospect $prospect): string
     {
         $component = Livewire::test(ManageProspects::class)
