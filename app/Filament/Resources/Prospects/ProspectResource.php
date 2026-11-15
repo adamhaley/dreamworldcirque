@@ -4,14 +4,21 @@ namespace App\Filament\Resources\Prospects;
 
 use App\Enums\ProspectStatus;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
+use App\Models\GalleryPhoto;
 use App\Models\Prospect;
+use App\Services\Prospects\ProspectReplyAttachmentData;
+use App\Services\Prospects\ProspectReplyAttachmentService;
+use App\Services\Prospects\ProspectReplyAttachmentsRejectedException;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
@@ -24,6 +31,7 @@ use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use UnitEnum;
 
@@ -290,9 +298,10 @@ class ProspectResource extends Resource
             ->modalSubmitActionLabel('Save reply')
             ->schema([
                 Textarea::make('final_reply')->label('Reply text')->required()->rows(10),
+                self::replyAttachmentsSection(),
             ])
-            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-            ->action(fn (array $data, Prospect $record) => $record->update(['final_reply' => $data['final_reply']]));
+            ->fillForm(fn (Prospect $record): array => self::replyFormFill($record))
+            ->action(fn (array $data, Prospect $record): bool => self::saveReply($record, $data));
     }
 
     private static function approveAndSendAction(string $name): Action
@@ -305,12 +314,162 @@ class ProspectResource extends Resource
             ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
             ->schema([
                 Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
+                self::replyAttachmentsSection(),
             ])
-            ->fillForm(fn (Prospect $record): array => ['final_reply' => $record->final_reply ?? $record->generated_reply ?? ''])
-            ->action(function (array $data, Prospect $record): void {
-                $record->update(['final_reply' => $data['final_reply']]);
+            ->fillForm(fn (Prospect $record): array => self::replyFormFill($record))
+            ->action(function (array $data, Prospect $record, Action $action): void {
+                self::saveReply($record, $data);
+
+                try {
+                    app(ProspectReplyAttachmentService::class)->prepare(self::replyAttachmentData($record));
+                } catch (ProspectReplyAttachmentsRejectedException $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Reply not sent')
+                        ->body($exception->getMessage())
+                        ->persistent()
+                        ->send();
+
+                    $action->halt();
+                }
+
                 $record->markStatus(ProspectStatus::Replied, auth()->id());
             });
+    }
+
+    private static function replyAttachmentsSection(): Section
+    {
+        return Section::make('Attachments')
+            ->icon(Heroicon::PaperClip)
+            ->schema([
+                CheckboxList::make('gallery_photo_ids')
+                    ->label('Photos from the website')
+                    ->options(fn (): array => self::galleryPhotoOptions())
+                    ->allowHtml()
+                    ->columns(3)
+                    ->bulkToggleable(),
+                FileUpload::make('uploads')
+                    ->label('Upload images')
+                    ->multiple()
+                    ->image()
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->disk('local')
+                    ->directory(fn (Prospect $record): string => self::uploadDirectory($record))
+                    ->visibility('private')
+                    ->storeFileNamesIn('upload_names'),
+            ]);
+    }
+
+    /**
+     * @return array<int, HtmlString>
+     */
+    private static function galleryPhotoOptions(): array
+    {
+        return GalleryPhoto::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->mapWithKeys(fn (GalleryPhoto $photo): array => [
+                $photo->id => new HtmlString(sprintf(
+                    '<span style="display: inline-flex; align-items: center; gap: 0.5rem;"><img src="%s" alt="%s" style="width: 4rem; height: 4rem; object-fit: cover; border-radius: 0.25rem;"><span>%s</span></span>',
+                    e(Storage::disk('public')->url($photo->image)),
+                    e($photo->alt ?? ''),
+                    e($photo->alt ?: $photo->title ?: basename($photo->image)),
+                )),
+            ])
+            ->all();
+    }
+
+    private static function uploadDirectory(Prospect $record): string
+    {
+        return "prospect-replies/{$record->id}";
+    }
+
+    /**
+     * @return array{final_reply: string, gallery_photo_ids: list<int>, uploads: list<string>, upload_names: array<string, string>}
+     */
+    private static function replyFormFill(Prospect $record): array
+    {
+        $entries = collect($record->reply_attachments ?? []);
+        $galleryPaths = $entries->where('disk', 'public')->pluck('path');
+        $uploads = $entries->where('disk', 'local');
+
+        return [
+            'final_reply' => $record->final_reply ?? $record->generated_reply ?? '',
+            'gallery_photo_ids' => $galleryPaths->isEmpty()
+                ? []
+                : GalleryPhoto::query()->whereIn('image', $galleryPaths)->pluck('id')->all(),
+            'uploads' => $uploads->pluck('path')->values()->all(),
+            'upload_names' => $uploads->pluck('name', 'path')->all(),
+        ];
+    }
+
+    /**
+     * @param  array{final_reply: string, gallery_photo_ids?: array<int|string>|null, uploads?: array<string>|string|null, upload_names?: array<string, string>|null}  $data
+     */
+    private static function saveReply(Prospect $record, array $data): bool
+    {
+        $entries = array_map(
+            fn (ProspectReplyAttachmentData $attachment): array => $attachment->toArray(),
+            [
+                ...self::galleryAttachments($data['gallery_photo_ids'] ?? []),
+                ...self::uploadAttachments((array) ($data['uploads'] ?? []), $data['upload_names'] ?? []),
+            ],
+        );
+
+        return $record->update([
+            'final_reply' => $data['final_reply'],
+            'reply_attachments' => $entries === [] ? null : $entries,
+        ]);
+    }
+
+    /**
+     * @param  array<int|string>|null  $ids
+     * @return list<ProspectReplyAttachmentData>
+     */
+    private static function galleryAttachments(?array $ids): array
+    {
+        if (blank($ids)) {
+            return [];
+        }
+
+        return GalleryPhoto::query()
+            ->whereKey($ids)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (GalleryPhoto $photo): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
+                disk: 'public',
+                path: $photo->image,
+                originalName: basename($photo->image),
+            ))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string>  $paths
+     * @param  array<string, string>|null  $names
+     * @return list<ProspectReplyAttachmentData>
+     */
+    private static function uploadAttachments(array $paths, ?array $names): array
+    {
+        return array_values(array_map(
+            fn (string $path): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
+                disk: 'local',
+                path: $path,
+                originalName: $names[$path] ?? basename($path),
+            ),
+            array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''),
+        ));
+    }
+
+    /**
+     * @return list<ProspectReplyAttachmentData>
+     */
+    private static function replyAttachmentData(Prospect $record): array
+    {
+        return array_map(ProspectReplyAttachmentData::fromArray(...), array_values($record->reply_attachments ?? []));
     }
 
     public static function getPages(): array
