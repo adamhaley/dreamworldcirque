@@ -24,6 +24,14 @@ class ProspectReplyMailTest extends TestCase
     }
 
     #[Test]
+    public function it_bccs_the_monitored_inbox_so_jena_keeps_a_copy(): void
+    {
+        $mail = new ProspectReplyMail(Prospect::factory()->draftReady()->make());
+
+        $mail->assertHasBcc('info@dreamworldcirque.com');
+    }
+
+    #[Test]
     public function it_has_the_expected_subject(): void
     {
         $mail = new ProspectReplyMail(Prospect::factory()->draftReady()->make());
