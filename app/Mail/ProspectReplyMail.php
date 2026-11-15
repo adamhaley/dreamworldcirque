@@ -23,6 +23,9 @@ class ProspectReplyMail extends Mailable
             // actually reads. Reply-To sends any customer reply to the real
             // address instead, which already forwards to her Gmail.
             ->replyTo('info@dreamworldcirque.com', 'Dream World Cirque')
+            // BCC the same inbox so Jena keeps a copy of everything sent from
+            // the admin (it forwards to her Gmail).
+            ->bcc('info@dreamworldcirque.com')
             ->text('emails.prospect-reply');
     }
 }
