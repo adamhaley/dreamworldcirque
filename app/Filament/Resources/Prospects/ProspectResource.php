@@ -34,6 +34,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use UnitEnum;
 
 class ProspectResource extends Resource
@@ -237,20 +238,20 @@ class ProspectResource extends Resource
                                 ->label(new HtmlString('<em>Why the AI drafted it this way</em>'))
                                 ->extraAttributes(['style' => 'font-style: italic;'])
                                 ->columnSpanFull(),
+                            self::sentReplyAttachmentsEntry(),
                             Actions::make([
                                 self::editReplyAction('editDraftReply'),
                                 self::approveAndSendAction('approveDraftAndSend'),
                             ])->alignEnd(),
                             TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
-                            self::sentReplyAttachmentsEntry(),
                         ]),
 
                     Section::make('Edited Reply')
                         ->visible(fn (Prospect $record): bool => self::hasEditedReply($record))
                         ->schema([
                             TextEntry::make('final_reply')->hiddenLabel()->extraAttributes(['style' => 'white-space: pre-line;'])->columnSpanFull(),
-                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
                             self::sentReplyAttachmentsEntry(),
+                            TextEntry::make('replied_at')->label('Sent at')->dateTime()->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied),
                             Actions::make([
                                 self::editReplyAction('editEditedReply'),
                                 self::approveAndSendAction('approveEditedAndSend'),
@@ -315,13 +316,18 @@ class ProspectResource extends Resource
             ->color('success')
             ->button()
             ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::DraftReady)
-            ->schema([
-                Textarea::make('final_reply')->label('Final reply')->required()->rows(10),
-                self::replyAttachmentsSection(),
-            ])
-            ->fillForm(fn (Prospect $record): array => self::replyFormFill($record))
-            ->action(function (array $data, Prospect $record, Action $action): void {
-                self::saveReply($record, $data);
+            ->requiresConfirmation()
+            ->modalHeading(fn (Prospect $record): string => "Send this reply to {$record->name}?")
+            ->modalDescription(function (Prospect $record): string {
+                $count = count($record->reply_attachments ?? []);
+
+                return 'The saved reply will be emailed with '.$count.' '.Str::plural('image', $count).'.';
+            })
+            ->modalSubmitActionLabel('Send')
+            ->action(function (Prospect $record, Action $action): void {
+                if (blank($record->final_reply)) {
+                    $record->update(['final_reply' => $record->generated_reply]);
+                }
 
                 try {
                     app(ProspectReplyAttachmentService::class)->prepare(self::replyAttachmentData($record));
@@ -342,7 +348,7 @@ class ProspectResource extends Resource
 
     private static function replyAttachmentsSection(): Section
     {
-        return Section::make('Attachments')
+        return Section::make('Attach images')
             ->icon(Heroicon::PaperClip)
             ->schema([
                 GalleryPhotoCarousel::make('gallery_photo_ids')
@@ -466,7 +472,7 @@ class ProspectResource extends Resource
             ->columnSpanFull()
             ->view('filament.infolists.sent-reply-attachments')
             ->viewData(fn (Prospect $record): array => ['attachments' => self::sentReplyAttachmentViewData($record)])
-            ->visible(fn (Prospect $record): bool => $record->status === ProspectStatus::Replied && self::sentReplyAttachmentViewData($record) !== []);
+            ->visible(fn (Prospect $record): bool => in_array($record->status, [ProspectStatus::DraftReady, ProspectStatus::Replied], true) && self::sentReplyAttachmentViewData($record) !== []);
     }
 
     /**

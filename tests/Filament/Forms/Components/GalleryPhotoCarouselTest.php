@@ -35,7 +35,6 @@ class GalleryPhotoCarouselTest extends TestCase
     public static function replyActionProvider(): Generator
     {
         yield 'edit reply' => ['editDraftReply'];
-        yield 'approve and send' => ['approveDraftAndSend'];
     }
 
     /**
@@ -130,6 +129,24 @@ class GalleryPhotoCarouselTest extends TestCase
             $photos->pluck('image')->all(),
             array_column($prospect->refresh()->reply_attachments, 'path'),
         );
+    }
+
+    #[Test]
+    public function it_renders_the_staged_area_above_the_carousel(): void
+    {
+        $prospect = Prospect::factory()->draftReady()->create();
+        GalleryPhoto::factory()->create();
+
+        $html = $this->renderedModals(
+            Livewire::test(ManageProspects::class)->mountAction($this->replyAction('editDraftReply', $prospect)),
+        );
+
+        $stagedPosition = strpos($html, 'class="gpc-staged');
+        $viewportPosition = strpos($html, 'class="gpc-viewport');
+
+        $this->assertNotFalse($stagedPosition);
+        $this->assertNotFalse($viewportPosition);
+        $this->assertLessThan($viewportPosition, $stagedPosition);
     }
 
     #[Test]

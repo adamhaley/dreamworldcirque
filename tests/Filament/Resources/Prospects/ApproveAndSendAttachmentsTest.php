@@ -36,19 +36,25 @@ class ApproveAndSendAttachmentsTest extends TestCase
     }
 
     #[Test]
-    public function it_sends_one_mail_with_resized_jpeg_copies_of_gallery_photos_and_the_upload(): void
+    public function it_sends_one_mail_with_resized_jpeg_copies_of_the_saved_gallery_photos_and_upload(): void
     {
-        $prospect = Prospect::factory()->draftReady()->create(['email' => 'lead@example.com']);
         $photos = collect([[2400, 1200], [400, 300]])->map(fn (array $size): GalleryPhoto => $this->galleryPhotoWithImage(...$size));
+        $upload = UploadedFile::fake()->image('stage.png', 3000, 2000);
+        Storage::disk('local')->put('prospect-replies/1/stage.png', $upload->getContent());
+        $prospect = Prospect::factory()->draftReady()->create([
+            'email' => 'lead@example.com',
+            'reply_attachments' => [
+                ...$photos->map(fn (GalleryPhoto $photo): array => ['disk' => 'public', 'path' => $photo->image, 'name' => basename($photo->image)])->all(),
+                ['disk' => 'local', 'path' => 'prospect-replies/1/stage.png', 'name' => 'stage.png'],
+            ],
+        ]);
 
         Livewire::test(ManageProspects::class)
-            ->callAction($this->approveAction($prospect), [
-                'final_reply' => 'Final reply',
-                'gallery_photo_ids' => $photos->pluck('id')->all(),
-                'uploads' => [UploadedFile::fake()->image('stage.png', 3000, 2000)],
-            ])
-            ->assertHasNoFormErrors();
+            ->callAction($this->approveAction($prospect))
+            ->assertHasNoActionErrors();
 
+        $this->assertSame(ProspectStatus::Replied, $prospect->refresh()->status);
+        $this->assertCount(3, $prospect->reply_attachments);
         Mail::assertSent(ProspectReplyMail::class, 1);
         Mail::assertSent(ProspectReplyMail::class, function (ProspectReplyMail $mail): bool {
             $sizes = array_map(fn (string $data): array => getimagesizefromstring($data), $this->attachedFiles($mail));
@@ -62,35 +68,13 @@ class ApproveAndSendAttachmentsTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_the_upload_privately_and_records_all_three_attachments_on_the_prospect(): void
+    public function it_sends_one_mail_with_no_attachments_when_none_are_saved(): void
     {
-        $prospect = Prospect::factory()->draftReady()->create();
-        $photos = collect([[2400, 1200], [400, 300]])->map(fn (array $size): GalleryPhoto => $this->galleryPhotoWithImage(...$size));
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => null]);
 
         Livewire::test(ManageProspects::class)
-            ->callAction($this->approveAction($prospect), [
-                'final_reply' => 'Final reply',
-                'gallery_photo_ids' => $photos->pluck('id')->all(),
-                'uploads' => [UploadedFile::fake()->image('stage.png', 3000, 2000)],
-            ]);
-
-        $attachments = collect($prospect->refresh()->reply_attachments);
-        $upload = $attachments->firstWhere('disk', 'local');
-        $this->assertSame(ProspectStatus::Replied, $prospect->status);
-        $this->assertCount(3, $attachments);
-        $this->assertSame($photos->pluck('image')->all(), $attachments->where('disk', 'public')->pluck('path')->all());
-        $this->assertStringStartsWith("prospect-replies/{$prospect->id}/", $upload['path']);
-        Storage::disk('local')->assertExists($upload['path']);
-    }
-
-    #[Test]
-    public function it_sends_one_mail_with_no_attachments_when_none_are_chosen(): void
-    {
-        $prospect = Prospect::factory()->draftReady()->create();
-
-        Livewire::test(ManageProspects::class)
-            ->callAction($this->approveAction($prospect), ['final_reply' => 'Final reply'])
-            ->assertHasNoFormErrors();
+            ->callAction($this->approveAction($prospect))
+            ->assertHasNoActionErrors();
 
         Mail::assertSent(ProspectReplyMail::class, 1);
         Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => $mail->attachments() === []);

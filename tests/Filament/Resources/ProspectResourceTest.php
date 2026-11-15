@@ -19,6 +19,7 @@ use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Filters\SelectFilter;
 use Generator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -365,7 +366,6 @@ class ProspectResourceTest extends TestCase
     public static function replyActionProvider(): Generator
     {
         yield 'edit reply' => ['editDraftReply'];
-        yield 'approve and send' => ['approveDraftAndSend'];
     }
 
     #[Test]
@@ -383,44 +383,95 @@ class ProspectResourceTest extends TestCase
         $this->assertStringContainsString('gpc-track', implode('', $component->effects['partials'] ?? []));
     }
 
-    #[Test]
-    public function it_saves_and_attaches_the_chosen_gallery_photos_when_approving_and_sending(): void
+    /**
+     * @param  list<GalleryPhoto>|Collection<int, GalleryPhoto>  $photos
+     * @return list<array{disk: string, path: string, name: string}>
+     */
+    private function galleryEntries(iterable $photos): array
     {
-        Mail::fake();
-        Storage::fake('local');
-        Storage::fake('public');
-        $this->actingAs(User::factory()->admin()->create());
-        $prospect = Prospect::factory()->draftReady()->create();
-        $photos = collect([$this->galleryPhotoWithImage(), $this->galleryPhotoWithImage()]);
-
-        Livewire::test(ManageProspects::class)
-            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
-                'final_reply' => 'Final reply',
-                'gallery_photo_ids' => $photos->pluck('id')->all(),
-            ])
-            ->assertHasNoFormErrors();
-
-        $prospect->refresh();
-        $this->assertSame(ProspectStatus::Replied, $prospect->status);
-        $this->assertSame($photos->pluck('image')->all(), array_column($prospect->reply_attachments, 'path'));
-        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => count($mail->attachments()) === 2);
+        return collect($photos)
+            ->map(fn (GalleryPhoto $photo): array => ['disk' => 'public', 'path' => $photo->image, 'name' => basename($photo->image)])
+            ->values()
+            ->all();
     }
 
     #[Test]
-    public function it_rejects_approve_and_send_with_more_than_ten_images(): void
+    public function it_has_no_form_and_asks_for_confirmation_when_approving_and_sending(): void
+    {
+        Mail::fake();
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create(['name' => 'Jane Lead', 'final_reply' => null, 'reply_attachments' => $this->galleryEntries([GalleryPhoto::factory()->create()])]);
+
+        $component = Livewire::test(ManageProspects::class)
+            ->mountAction($this->replyAction('approveDraftAndSend', $prospect))
+            ->assertActionMounted($this->replyAction('approveDraftAndSend', $prospect));
+
+        $modal = implode('', $component->effects['partials'] ?? []);
+        $this->assertStringContainsString('Send this reply to Jane Lead?', $modal);
+        $this->assertStringContainsString('1 image', $modal);
+        $this->assertStringNotContainsString('gpc-track', $modal);
+        $this->assertStringNotContainsString('<textarea', $modal);
+
+        Mail::assertNothingSent();
+    }
+
+    #[Test]
+    public function it_sends_the_saved_images_and_the_ai_draft_when_nothing_was_edited(): void
     {
         Mail::fake();
         Storage::fake('local');
         Storage::fake('public');
         $this->actingAs(User::factory()->admin()->create());
-        $prospect = Prospect::factory()->draftReady()->create();
-        $photos = GalleryPhoto::factory()->count(11)->create();
+        $photos = collect([$this->galleryPhotoWithImage(), $this->galleryPhotoWithImage()]);
+        $prospect = Prospect::factory()->draftReady()->create([
+            'generated_reply' => 'The AI draft',
+            'final_reply' => null,
+            'reply_attachments' => $this->galleryEntries($photos),
+        ]);
 
         Livewire::test(ManageProspects::class)
-            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
-                'final_reply' => 'Final reply',
-                'gallery_photo_ids' => $photos->modelKeys(),
-            ])
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect))
+            ->assertHasNoActionErrors();
+
+        $prospect->refresh();
+        $this->assertSame(ProspectStatus::Replied, $prospect->status);
+        $this->assertSame('The AI draft', $prospect->final_reply);
+        Mail::assertSent(ProspectReplyMail::class, 1);
+        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => count($mail->attachments()) === 2
+            && str_contains($mail->render(), 'The AI draft'));
+    }
+
+    #[Test]
+    public function it_sends_the_saved_edited_reply_when_one_exists(): void
+    {
+        Mail::fake();
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create([
+            'generated_reply' => 'The AI draft',
+            'final_reply' => 'My edited reply',
+        ]);
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveEditedAndSend', $prospect));
+
+        $this->assertSame(ProspectStatus::Replied, $prospect->refresh()->status);
+        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => str_contains($mail->render(), 'My edited reply')
+            && ! str_contains($mail->render(), 'The AI draft')
+            && $mail->attachments() === []);
+    }
+
+    #[Test]
+    public function it_rejects_approve_and_send_with_more_than_ten_saved_images(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $photos = GalleryPhoto::factory()->count(11)->create();
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => $this->galleryEntries($photos)]);
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect))
             ->assertNotified('Reply not sent');
 
         $this->assertSame(ProspectStatus::DraftReady, $prospect->refresh()->status);
@@ -435,14 +486,11 @@ class ProspectResourceTest extends TestCase
         Storage::fake('public');
         $this->app->instance(ProspectReplyAttachmentService::class, new ProspectReplyAttachmentService(maxTotalBytes: 10));
         $this->actingAs(User::factory()->admin()->create());
-        $prospect = Prospect::factory()->draftReady()->create();
         $photo = $this->galleryPhotoWithImage();
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => $this->galleryEntries([$photo])]);
 
         Livewire::test(ManageProspects::class)
-            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
-                'final_reply' => 'Final reply',
-                'gallery_photo_ids' => [$photo->id],
-            ])
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect))
             ->assertNotified('Reply not sent');
 
         $this->assertSame(ProspectStatus::DraftReady, $prospect->refresh()->status);
@@ -454,17 +502,13 @@ class ProspectResourceTest extends TestCase
     {
         Mail::fake();
         $this->actingAs(User::factory()->admin()->create());
-        $prospect = Prospect::factory()->draftReady()->create();
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => null]);
 
         Livewire::test(ManageProspects::class)
-            ->callAction($this->replyAction('approveDraftAndSend', $prospect), [
-                'final_reply' => 'Final reply',
-            ])
-            ->assertHasNoFormErrors();
+            ->callAction($this->replyAction('approveDraftAndSend', $prospect))
+            ->assertHasNoActionErrors();
 
-        $prospect->refresh();
-        $this->assertSame(ProspectStatus::Replied, $prospect->status);
-        $this->assertEmpty($prospect->reply_attachments);
-        Mail::assertSent(ProspectReplyMail::class);
+        $this->assertSame(ProspectStatus::Replied, $prospect->refresh()->status);
+        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => $mail->attachments() === []);
     }
 }
