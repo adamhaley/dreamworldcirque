@@ -23,7 +23,7 @@
         .gpc-arrow:disabled { opacity: 0; pointer-events: none; }
         .gpc-arrow-prev { left: 0.25rem; }
         .gpc-arrow-next { right: 0.25rem; }
-        .gpc-staged { margin-top: 1rem; padding: 0.75rem; border-radius: 0.5rem; background: var(--gray-50); box-shadow: 0 0 0 1px color-mix(in oklab, var(--gray-950) 5%, transparent); }
+        .gpc-staged { margin-bottom: 1rem; padding: 0.75rem; border-radius: 0.5rem; background: var(--gray-50); box-shadow: 0 0 0 1px color-mix(in oklab, var(--gray-950) 5%, transparent); }
         .gpc-staged-heading { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; color: var(--gray-950); }
         .gpc-staged-count { font-weight: 400; color: var(--gray-500); }
         .gpc-staged-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
@@ -100,6 +100,52 @@
         x-on:resize.window.debounce.100ms="updateArrows()"
         {{ $getExtraAttributeBag()->class(['gpc']) }}
     >
+        <div class="gpc-staged mb-4 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
+            <div class="gpc-staged-heading flex justify-between text-sm font-medium text-gray-950 dark:text-white">
+                <span>Staged</span>
+                <span class="gpc-staged-count text-gray-500 dark:text-gray-400" x-text="(staged.length + {{ count($stagedUploads) }}) + ' / {{ \App\Services\Prospects\ProspectReplyAttachmentService::MAX_ATTACHMENTS }} images'"></span>
+            </div>
+
+            <div class="gpc-staged-list mt-2 flex flex-wrap gap-2">
+                <template x-for="photo in staged" x-bind:key="photo.id">
+                    <div class="gpc-thumb" x-bind:title="photo.label">
+                        <div class="gpc-thumb-frame">
+                            <img x-bind:src="photo.url" x-bind:alt="photo.alt">
+                        </div>
+                        <div class="gpc-thumb-label" x-text="photo.label"></div>
+                        @unless ($isDisabled)
+                            <button
+                                type="button"
+                                class="gpc-remove"
+                                x-bind:aria-label="'Remove ' + photo.label"
+                                x-on:click="remove(photo.id)"
+                            >&times;</button>
+                        @endunless
+                    </div>
+                </template>
+
+                @foreach ($stagedUploads as $upload)
+                    <div class="gpc-thumb" title="{{ $upload['name'] }}" wire:key="{{ $getStatePath() }}-upload-{{ $upload['key'] }}" data-staged-upload>
+                        <div class="gpc-thumb-frame">
+                            @if ($upload['url'])
+                                <img src="{{ $upload['url'] }}" alt="{{ $upload['name'] }}">
+                            @else
+                                <span>{{ $upload['name'] }}</span>
+                            @endif
+                            <span class="gpc-badge">Upload</span>
+                        </div>
+                        <div class="gpc-thumb-label">{{ $upload['name'] }}</div>
+                    </div>
+                @endforeach
+
+                @if ($stagedUploads === [])
+                    <p class="gpc-empty text-sm text-gray-500 dark:text-gray-400" x-show="staged.length === 0">
+                        Nothing staged yet. Tap a photo above or upload images below.
+                    </p>
+                @endif
+            </div>
+        </div>
+
         @if ($photos === [])
             <p class="gpc-empty text-sm text-gray-500 dark:text-gray-400">No gallery photos yet.</p>
         @else
@@ -157,51 +203,5 @@
                 </button>
             </div>
         @endif
-
-        <div class="gpc-staged mt-4 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
-            <div class="gpc-staged-heading flex justify-between text-sm font-medium text-gray-950 dark:text-white">
-                <span>Staged</span>
-                <span class="gpc-staged-count text-gray-500 dark:text-gray-400" x-text="(staged.length + {{ count($stagedUploads) }}) + ' / {{ \App\Services\Prospects\ProspectReplyAttachmentService::MAX_ATTACHMENTS }} images'"></span>
-            </div>
-
-            <div class="gpc-staged-list mt-2 flex flex-wrap gap-2">
-                <template x-for="photo in staged" x-bind:key="photo.id">
-                    <div class="gpc-thumb" x-bind:title="photo.label">
-                        <div class="gpc-thumb-frame">
-                            <img x-bind:src="photo.url" x-bind:alt="photo.alt">
-                        </div>
-                        <div class="gpc-thumb-label" x-text="photo.label"></div>
-                        @unless ($isDisabled)
-                            <button
-                                type="button"
-                                class="gpc-remove"
-                                x-bind:aria-label="'Remove ' + photo.label"
-                                x-on:click="remove(photo.id)"
-                            >&times;</button>
-                        @endunless
-                    </div>
-                </template>
-
-                @foreach ($stagedUploads as $upload)
-                    <div class="gpc-thumb" title="{{ $upload['name'] }}" wire:key="{{ $getStatePath() }}-upload-{{ $upload['key'] }}" data-staged-upload>
-                        <div class="gpc-thumb-frame">
-                            @if ($upload['url'])
-                                <img src="{{ $upload['url'] }}" alt="{{ $upload['name'] }}">
-                            @else
-                                <span>{{ $upload['name'] }}</span>
-                            @endif
-                            <span class="gpc-badge">Upload</span>
-                        </div>
-                        <div class="gpc-thumb-label">{{ $upload['name'] }}</div>
-                    </div>
-                @endforeach
-
-                @if ($stagedUploads === [])
-                    <p class="gpc-empty text-sm text-gray-500 dark:text-gray-400" x-show="staged.length === 0">
-                        Nothing staged yet. Tap a photo above or upload images below.
-                    </p>
-                @endif
-            </div>
-        </div>
     </div>
 </x-dynamic-component>
