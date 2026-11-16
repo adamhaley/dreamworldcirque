@@ -60,23 +60,23 @@
             photos: @js($photos),
             canScrollPrev: false,
             canScrollNext: false,
-            selectedIds() {
-                return Array.isArray(this.state) ? this.state.map(Number) : []
+            selectedPaths() {
+                return Array.isArray(this.state) ? this.state.filter((path) => typeof path === 'string' && path !== '') : []
             },
-            isSelected(id) {
-                return this.selectedIds().includes(id)
+            isSelected(path) {
+                return this.selectedPaths().includes(path)
             },
-            toggle(id) {
-                const ids = this.selectedIds()
-                this.state = ids.includes(id) ? ids.filter((selectedId) => selectedId !== id) : [...ids, id]
+            toggle(path) {
+                const paths = this.selectedPaths()
+                this.state = paths.includes(path) ? paths.filter((selectedPath) => selectedPath !== path) : [...paths, path]
             },
-            remove(id) {
-                this.state = this.selectedIds().filter((selectedId) => selectedId !== id)
+            remove(path) {
+                this.state = this.selectedPaths().filter((selectedPath) => selectedPath !== path)
             },
             get staged() {
-                const ids = this.selectedIds()
+                const paths = this.selectedPaths()
 
-                return this.photos.filter((photo) => ids.includes(photo.id))
+                return this.photos.filter((photo) => paths.includes(photo.path))
             },
             updateArrows() {
                 const track = this.$refs.track
@@ -107,7 +107,7 @@
             </div>
 
             <div class="gpc-staged-list mt-2 flex flex-wrap gap-2">
-                <template x-for="photo in staged" x-bind:key="photo.id">
+                <template x-for="photo in staged" x-bind:key="photo.path">
                     <div class="gpc-thumb" x-bind:title="photo.label">
                         <div class="gpc-thumb-frame">
                             <img x-bind:src="photo.url" x-bind:alt="photo.alt">
@@ -118,7 +118,7 @@
                                 type="button"
                                 class="gpc-remove"
                                 x-bind:aria-label="'Remove ' + photo.label"
-                                x-on:click="remove(photo.id)"
+                                x-on:click="remove(photo.path)"
                             >&times;</button>
                         @endunless
                     </div>
@@ -147,7 +147,7 @@
         </div>
 
         @if ($photos === [])
-            <p class="gpc-empty text-sm text-gray-500 dark:text-gray-400">No gallery photos yet.</p>
+            <p class="gpc-empty text-sm text-gray-500 dark:text-gray-400">No website images yet.</p>
         @else
             <div class="gpc-viewport relative">
                 <button
@@ -169,21 +169,21 @@
                     aria-label="{{ $getLabel() }}"
                 >
                     @foreach ($photos as $photo)
-                        <div class="gpc-slide w-[70%] shrink-0 snap-start sm:w-1/3" data-slide wire:key="{{ $getStatePath() }}-photo-{{ $photo['id'] }}">
+                        <div class="gpc-slide w-[70%] shrink-0 snap-start sm:w-1/3" data-slide wire:key="{{ $getStatePath() }}-photo-{{ $photo['path'] }}">
                             <button
                                 type="button"
                                 class="gpc-photo"
                                 role="option"
                                 title="{{ $photo['label'] }}"
-                                data-photo-id="{{ $photo['id'] }}"
-                                x-bind:aria-pressed="isSelected({{ $photo['id'] }}) ? 'true' : 'false'"
-                                x-bind:aria-selected="isSelected({{ $photo['id'] }}) ? 'true' : 'false'"
-                                x-on:click="toggle({{ $photo['id'] }})"
+                                data-photo-path="{{ $photo['path'] }}"
+                                x-bind:aria-pressed="isSelected(@js($photo['path'])) ? 'true' : 'false'"
+                                x-bind:aria-selected="isSelected(@js($photo['path'])) ? 'true' : 'false'"
+                                x-on:click="toggle(@js($photo['path']))"
                                 @disabled($isDisabled)
                             >
                                 <span class="gpc-frame block aspect-[4/3] overflow-hidden rounded-lg bg-gray-100 ring-1 ring-gray-950/10 dark:bg-white/5 dark:ring-white/10">
                                     <img src="{{ $photo['url'] }}" alt="{{ $photo['alt'] }}" loading="lazy" draggable="false" class="size-full object-cover">
-                                    <span class="gpc-check" x-show="isSelected({{ $photo['id'] }})" x-cloak aria-hidden="true">
+                                    <span class="gpc-check" x-show="isSelected(@js($photo['path']))" x-cloak aria-hidden="true">
                                         <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::Check" style="width: 1rem; height: 1rem;" />
                                     </span>
                                 </span>
