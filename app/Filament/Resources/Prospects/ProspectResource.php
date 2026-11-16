@@ -16,6 +16,7 @@ use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\ViewEntry;
@@ -102,6 +103,32 @@ class ProspectResource extends Resource
                 TextColumn::make('status')
                     ->label('Pipeline status')
                     ->badge(),
+                TextColumn::make('set_status')
+                    ->label('')
+                    ->state('Set status')
+                    ->icon(Heroicon::ArrowPath)
+                    ->action(
+                        Action::make('setStatus')
+                            ->label('Set status')
+                            ->icon(Heroicon::ArrowPath)
+                            ->modalHeading('Set status manually?')
+                            ->modalDescription('This only changes the status. No email is sent and no reply is generated.')
+                            ->modalSubmitActionLabel('Save status')
+                            ->schema([
+                                Select::make('status')
+                                    ->label('Pipeline status')
+                                    ->options(ProspectStatus::class)
+                                    ->default(fn (Prospect $record): ProspectStatus => $record->status)
+                                    ->required(),
+                            ])
+                            ->action(function (Prospect $record, array $data): void {
+                                $status = $data['status'] instanceof ProspectStatus
+                                    ? $data['status']
+                                    : ProspectStatus::from($data['status']);
+
+                                $record->overrideStatus($status, auth()->id());
+                            })
+                    ),
                 TextColumn::make('form_type')->badge()->color('gray'),
                 TextColumn::make('submitted_at')->dateTime()->sortable(),
             ])

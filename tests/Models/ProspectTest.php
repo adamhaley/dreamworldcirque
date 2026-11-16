@@ -4,12 +4,14 @@ namespace Tests\Models;
 
 use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
+use App\Events\RecordPipelineStatusChanged;
 use App\Jobs\ClassifyProspect;
 use App\Jobs\GenerateProspectReply;
 use App\Mail\ProspectReplyMail;
 use App\Models\Prospect;
 use App\Models\User;
 use Generator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -165,5 +167,53 @@ class ProspectTest extends TestCase
         $prospect = Prospect::factory()->create();
 
         $this->assertNull($prospect->refresh()->reply_attachments);
+    }
+
+    public static function statusProvider(): Generator
+    {
+        foreach (ProspectStatus::cases() as $status) {
+            yield $status->value => [$status];
+        }
+    }
+
+    #[Test]
+    #[DataProvider('statusProvider')]
+    public function it_overrides_status_without_side_effects(ProspectStatus $status): void
+    {
+        Queue::fake();
+        Mail::fake();
+        $user = User::factory()->create();
+        $prospect = Prospect::factory()->draftReady()->create();
+        Queue::fake();
+        Event::fake([RecordPipelineStatusChanged::class]);
+
+        $result = $prospect->overrideStatus($status, $user->id);
+
+        $this->assertTrue($result);
+        $prospect->refresh();
+        $this->assertSame($status, $prospect->status);
+        $this->assertSame($user->id, $prospect->reviewed_by_user_id);
+        $this->assertNotNull($prospect->reviewed_at);
+        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
+        Queue::assertNothingPushed();
+        Event::assertDispatched(RecordPipelineStatusChanged::class);
+    }
+
+    #[Test]
+    public function it_does_not_send_the_reply_when_overriding_to_replied(): void
+    {
+        Queue::fake();
+        Mail::fake();
+        $prospect = Prospect::factory()->draftReady()->withReplyAttachments()->create();
+
+        $prospect->overrideStatus(ProspectStatus::Replied, null);
+
+        $prospect->refresh();
+        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
+        $this->assertNull($prospect->replied_at);
+        $this->assertNotNull($prospect->final_reply);
+        $this->assertCount(2, $prospect->reply_attachments);
     }
 }
