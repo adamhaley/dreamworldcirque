@@ -3,6 +3,7 @@
 namespace App\Filament\Forms\Components;
 
 use App\Models\GalleryPhoto;
+use App\Models\Page;
 use Closure;
 use Filament\Forms\Components\Field;
 use Filament\Schemas\Components\Utilities\Get;
@@ -11,7 +12,9 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
 
 /**
- * Swipeable carousel of Gallery photos whose state is a list of selected GalleryPhoto ids.
+ * Swipeable carousel of the website's images: Gallery photos (in gallery order), then each Page's
+ * hero, circle and card images. Each image is keyed by its public-disk path and offered once; the
+ * field's state is the list of selected public-disk paths, limited to the images it offers.
  */
 class GalleryPhotoCarousel extends Field
 {
@@ -28,10 +31,10 @@ class GalleryPhotoCarousel extends Field
         $this->default([]);
 
         $this->afterStateHydrated(static function (GalleryPhotoCarousel $component, mixed $state): void {
-            $component->state(self::normalizeIds($state));
+            $component->state($component->normalizePaths($state));
         });
 
-        $this->dehydrateStateUsing(static fn (mixed $state): array => self::normalizeIds($state));
+        $this->dehydrateStateUsing(static fn (GalleryPhotoCarousel $component, mixed $state): array => $component->normalizePaths($state));
 
         $this->rule('array');
     }
@@ -48,22 +51,56 @@ class GalleryPhotoCarousel extends Field
     }
 
     /**
-     * @return list<array{id: int, url: string, alt: string, label: string}>
+     * @return list<array{path: string, url: string, alt: string, label: string}>
      */
     public function getPhotos(): array
     {
-        return GalleryPhoto::query()
+        $photos = [];
+
+        $add = function (?string $path, string $alt, string $label) use (&$photos): void {
+            if (blank($path) || array_key_exists($path, $photos)) {
+                return;
+            }
+
+            $photos[$path] = [
+                'path' => $path,
+                'url' => Storage::disk('public')->url($path),
+                'alt' => $alt,
+                'label' => $label,
+            ];
+        };
+
+        GalleryPhoto::query()
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
-            ->map(fn (GalleryPhoto $photo): array => [
-                'id' => $photo->id,
-                'url' => Storage::disk('public')->url($photo->image),
-                'alt' => (string) ($photo->alt ?? ''),
-                'label' => (string) ($photo->alt ?: $photo->title ?: basename($photo->image)),
-            ])
-            ->values()
-            ->all();
+            ->each(fn (GalleryPhoto $photo) => $add(
+                $photo->image,
+                (string) ($photo->alt ?? ''),
+                (string) ($photo->alt ?: $photo->title ?: basename((string) $photo->image)),
+            ));
+
+        Page::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'title', 'hero_image', 'circle_image', 'circle_image_alt', 'card_image'])
+            ->each(function (Page $page) use ($add): void {
+                $add($page->hero_image, '', "{$page->title}, hero");
+                $add($page->circle_image, (string) ($page->circle_image_alt ?? ''), "{$page->title}, circle");
+                $add($page->card_image, '', "{$page->title}, card");
+            });
+
+        return array_values($photos);
+    }
+
+    /**
+     * The public-disk paths of the offered images, in carousel order.
+     *
+     * @return list<string>
+     */
+    public function getPhotoPaths(): array
+    {
+        return array_column($this->getPhotos(), 'path');
     }
 
     /**
@@ -123,19 +160,26 @@ class GalleryPhotoCarousel extends Field
     }
 
     /**
-     * @return list<int>
+     * Reduce a state value to the unique, non-empty public-disk paths it selects from the offered images,
+     * in the carousel's offered order.
+     *
+     * @return list<string>
      */
-    private static function normalizeIds(mixed $state): array
+    public function normalizePaths(mixed $state): array
     {
         if (! is_array($state)) {
             return [];
         }
 
-        $ids = array_map(
-            fn (mixed $id): int => (int) $id,
-            array_filter($state, fn (mixed $id): bool => is_numeric($id) && (int) $id > 0),
-        );
+        $paths = array_values(array_unique(array_filter(
+            $state,
+            fn (mixed $path): bool => is_string($path) && $path !== '',
+        )));
 
-        return array_values(array_unique($ids));
+        if ($paths === []) {
+            return [];
+        }
+
+        return array_values(array_intersect($this->getPhotoPaths(), $paths));
     }
 }

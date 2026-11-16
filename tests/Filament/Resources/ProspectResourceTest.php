@@ -10,6 +10,7 @@ use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
 use App\Mail\ProspectReplyMail;
 use App\Models\GalleryPhoto;
+use App\Models\Page;
 use App\Models\Prospect;
 use App\Models\User;
 use App\Services\Prospects\ProspectReplyAttachmentService;
@@ -331,7 +332,7 @@ class ProspectResourceTest extends TestCase
         Livewire::test(ManageProspects::class)
             ->callAction($this->replyAction('editDraftReply', $prospect), [
                 'final_reply' => 'Edited reply',
-                'gallery_photo_ids' => [$photo->id],
+                'website_images' => [$photo->image],
                 'uploads' => [UploadedFile::fake()->image('stage.png', 200, 200)],
             ])
             ->assertHasNoFormErrors();
@@ -380,9 +381,35 @@ class ProspectResourceTest extends TestCase
 
         $component = Livewire::test(ManageProspects::class)
             ->mountAction($this->replyAction($action, $prospect))
-            ->assertFormFieldExists('gallery_photo_ids', fn (mixed $field): bool => $field instanceof GalleryPhotoCarousel);
+            ->assertFormFieldExists('website_images', fn (mixed $field): bool => $field instanceof GalleryPhotoCarousel);
 
         $this->assertStringContainsString('gpc-track', implode('', $component->effects['partials'] ?? []));
+    }
+
+    #[Test]
+    public function it_saves_a_picked_page_image_and_attaches_it_on_approve_and_send(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        Storage::disk('public')->put('pages/about-circle.jpg', UploadedFile::fake()->image('circle.jpg', 300, 300)->getContent());
+        Page::factory()->create(['title' => 'About', 'circle_image' => 'pages/about-circle.jpg']);
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => null]);
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('editDraftReply', $prospect), [
+                'final_reply' => 'Edited reply',
+                'website_images' => ['pages/about-circle.jpg'],
+            ])
+            ->assertHasNoFormErrors();
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('approveEditedAndSend', $prospect->refresh()))
+            ->assertHasNoActionErrors();
+
+        $this->assertEquals([['disk' => 'public', 'path' => 'pages/about-circle.jpg', 'name' => 'about-circle.jpg']], $prospect->refresh()->reply_attachments);
+        $this->assertSame(ProspectStatus::Replied, $prospect->status);
+        Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => count($mail->attachments()) === 1);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace Tests\Filament\Forms\Components;
 use App\Filament\Forms\Components\GalleryPhotoCarousel;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Models\GalleryPhoto;
+use App\Models\Page;
 use App\Models\Prospect;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -67,7 +68,7 @@ class GalleryPhotoCarouselTest extends TestCase
             Livewire::test(ManageProspects::class)->mountAction($this->replyAction($action, $prospect)),
         );
 
-        $this->assertStringContainsString('data-photo-id="'.$photo->id.'"', $html);
+        $this->assertStringContainsString('data-photo-path="'.e($photo->image).'"', $html);
         $this->assertStringContainsString('src="'.e(Storage::disk('public')->url($photo->image)).'"', $html);
         $this->assertStringContainsString('title="Aerial silks over the stage"', $html);
         $this->assertStringContainsString('alt="Aerial silks over the stage"', $html);
@@ -79,10 +80,10 @@ class GalleryPhotoCarouselTest extends TestCase
     {
         $photo = GalleryPhoto::factory()->create(['alt' => '', 'title' => 'Fire dancers']);
 
-        $photos = GalleryPhotoCarousel::make('gallery_photo_ids')->getPhotos();
+        $photos = GalleryPhotoCarousel::make('website_images')->getPhotos();
 
         $this->assertSame(
-            ['id' => $photo->id, 'url' => Storage::disk('public')->url($photo->image), 'alt' => '', 'label' => 'Fire dancers'],
+            ['path' => $photo->image, 'url' => Storage::disk('public')->url($photo->image), 'alt' => '', 'label' => 'Fire dancers'],
             $photos[0],
         );
     }
@@ -93,9 +94,9 @@ class GalleryPhotoCarouselTest extends TestCase
         $second = GalleryPhoto::factory()->create(['sort_order' => 2]);
         $first = GalleryPhoto::factory()->create(['sort_order' => 1]);
 
-        $ids = array_column(GalleryPhotoCarousel::make('gallery_photo_ids')->getPhotos(), 'id');
+        $paths = array_column(GalleryPhotoCarousel::make('website_images')->getPhotos(), 'path');
 
-        $this->assertSame([$first->id, $second->id], $ids);
+        $this->assertSame([$first->image, $second->image], $paths);
     }
 
     #[Test]
@@ -109,11 +110,11 @@ class GalleryPhotoCarouselTest extends TestCase
 
         Livewire::test(ManageProspects::class)
             ->mountAction($this->replyAction('editDraftReply', $prospect))
-            ->assertSchemaStateSet(['gallery_photo_ids' => [$photo->id]]);
+            ->assertSchemaStateSet(['website_images' => [$photo->image]]);
     }
 
     #[Test]
-    public function it_dehydrates_its_state_to_a_unique_list_of_photo_ids(): void
+    public function it_dehydrates_its_state_to_a_unique_list_of_offered_paths(): void
     {
         $prospect = Prospect::factory()->draftReady()->create();
         $photos = GalleryPhoto::factory()->count(2)->create();
@@ -121,7 +122,7 @@ class GalleryPhotoCarouselTest extends TestCase
         Livewire::test(ManageProspects::class)
             ->callAction($this->replyAction('editDraftReply', $prospect), [
                 'final_reply' => 'Edited reply',
-                'gallery_photo_ids' => [(string) $photos[0]->id, $photos[1]->id, $photos[0]->id, null],
+                'website_images' => [$photos[0]->image, $photos[1]->image, $photos[0]->image, '', null, 'gallery/not-offered.jpg'],
             ])
             ->assertHasNoFormErrors();
 
@@ -162,5 +163,66 @@ class GalleryPhotoCarouselTest extends TestCase
 
         $this->assertStringContainsString('data-staged-upload', $html);
         $this->assertStringContainsString('backstage.png', $html);
+    }
+
+    #[Test]
+    public function it_offers_each_pages_hero_circle_and_card_images_after_the_gallery_photos(): void
+    {
+        $photo = GalleryPhoto::factory()->create();
+        Page::factory()->create([
+            'title' => 'About',
+            'hero_image' => 'pages/about-hero.jpg',
+            'circle_image' => 'pages/about-circle.jpg',
+            'circle_image_alt' => 'Juggler on a unicycle',
+            'card_image' => 'pages/about-card.jpg',
+        ]);
+
+        $photos = GalleryPhotoCarousel::make('website_images')->getPhotos();
+
+        $this->assertSame($photo->image, $photos[0]['path']);
+        $this->assertSame(
+            [
+                ['path' => 'pages/about-hero.jpg', 'url' => Storage::disk('public')->url('pages/about-hero.jpg'), 'alt' => '', 'label' => 'About, hero'],
+                ['path' => 'pages/about-circle.jpg', 'url' => Storage::disk('public')->url('pages/about-circle.jpg'), 'alt' => 'Juggler on a unicycle', 'label' => 'About, circle'],
+                ['path' => 'pages/about-card.jpg', 'url' => Storage::disk('public')->url('pages/about-card.jpg'), 'alt' => '', 'label' => 'About, card'],
+            ],
+            array_slice($photos, 1),
+        );
+    }
+
+    #[Test]
+    public function it_never_offers_a_pages_og_image(): void
+    {
+        Page::factory()->create(['hero_image' => 'pages/hero.jpg', 'og_image' => 'pages/og.jpg']);
+
+        $paths = GalleryPhotoCarousel::make('website_images')->getPhotoPaths();
+
+        $this->assertSame(['pages/hero.jpg'], $paths);
+    }
+
+    public static function duplicateImageProvider(): Generator
+    {
+        yield 'card image is the same file as the hero' => [null, ['title' => 'About', 'hero_image' => 'pages/shared.jpg', 'card_image' => 'pages/shared.jpg'], 'About, hero'];
+        yield 'gallery photo is also a page image' => ['pages/shared.jpg', ['title' => 'About', 'hero_image' => 'pages/shared.jpg'], 'Gallery shot'];
+    }
+
+    /**
+     * @param  array<string, string>  $pageAttributes
+     */
+    #[Test]
+    #[DataProvider('duplicateImageProvider')]
+    public function it_offers_a_file_used_twice_only_once_at_its_first_occurrence(?string $galleryImage, array $pageAttributes, string $expectedLabel): void
+    {
+        if ($galleryImage !== null) {
+            GalleryPhoto::factory()->create(['image' => $galleryImage, 'alt' => 'Gallery shot']);
+        }
+        Page::factory()->create($pageAttributes);
+
+        $photos = GalleryPhotoCarousel::make('website_images')->getPhotos();
+
+        $this->assertSame([['pages/shared.jpg', $expectedLabel]], array_map(
+            fn (array $item): array => [$item['path'], $item['label']],
+            $photos,
+        ));
     }
 }
