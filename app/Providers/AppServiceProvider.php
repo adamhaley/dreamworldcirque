@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Ai\PreviewAgentFakes;
 use App\Models\FaqItem;
 use App\Models\Page;
 use App\Models\SiteSetting;
@@ -20,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        PreviewAgentFakes::register();
+
         RateLimiter::for('openai', fn (object $job): Limit => Limit::perMinute(30)->by('openai'));
 
         View::composer('components.chat-widget', function (ViewInstance $view): void {
