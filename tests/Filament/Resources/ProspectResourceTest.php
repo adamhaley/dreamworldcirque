@@ -149,7 +149,7 @@ class ProspectResourceTest extends TestCase
 
         $actions = $component->instance()->getTable()->getFlatRecordActions();
 
-        $this->assertSame(['review', 'setStatus'], array_keys($actions));
+        $this->assertSame(['review'], array_keys($actions));
         $this->assertInstanceOf(ViewAction::class, $actions['review']);
         $this->assertSame('Review', $actions['review']->getLabel());
     }
@@ -515,6 +515,19 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_places_the_set_status_column_right_after_the_pipeline_status_column(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $columnNames = array_keys(Livewire::test(ManageProspects::class)->instance()->getTable()->getColumns());
+
+        $statusIndex = array_search('status', $columnNames, true);
+
+        $this->assertNotFalse($statusIndex);
+        $this->assertSame('set_status', $columnNames[$statusIndex + 1]);
+    }
+
+    #[Test]
     public function it_sets_status_manually_without_sending_or_generating(): void
     {
         $user = User::factory()->admin()->create();
@@ -525,7 +538,7 @@ class ProspectResourceTest extends TestCase
         Event::fake([RecordPipelineStatusChanged::class]);
 
         Livewire::test(ManageProspects::class)
-            ->callTableAction('setStatus', $prospect, ['status' => ProspectStatus::Replied->value])
+            ->callAction(TestAction::make('setStatus')->table($prospect), ['status' => ProspectStatus::Replied->value])
             ->assertHasNoTableActionErrors();
 
         $prospect->refresh();
