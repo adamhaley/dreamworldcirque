@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Prospects;
 use App\Enums\ProspectStatus;
 use App\Filament\Forms\Components\GalleryPhotoCarousel;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
-use App\Models\GalleryPhoto;
 use App\Models\Prospect;
 use App\Services\Prospects\ProspectReplyAttachmentData;
 use App\Services\Prospects\ProspectReplyAttachmentService;
@@ -378,7 +377,7 @@ class ProspectResource extends Resource
         return Section::make('Attach images')
             ->icon(Heroicon::PaperClip)
             ->schema([
-                GalleryPhotoCarousel::make('gallery_photo_ids')
+                GalleryPhotoCarousel::make('website_images')
                     ->label('Photos from the website')
                     ->stagedUploadsFrom('uploads'),
                 FileUpload::make('uploads')
@@ -399,33 +398,30 @@ class ProspectResource extends Resource
     }
 
     /**
-     * @return array{final_reply: string, gallery_photo_ids: list<int>, uploads: list<string>, upload_names: array<string, string>}
+     * @return array{final_reply: string, website_images: list<string>, uploads: list<string>, upload_names: array<string, string>}
      */
     private static function replyFormFill(Prospect $record): array
     {
         $entries = collect($record->reply_attachments ?? []);
-        $galleryPaths = $entries->where('disk', 'public')->pluck('path');
         $uploads = $entries->where('disk', 'local');
 
         return [
             'final_reply' => $record->final_reply ?? $record->generated_reply ?? '',
-            'gallery_photo_ids' => $galleryPaths->isEmpty()
-                ? []
-                : GalleryPhoto::query()->whereIn('image', $galleryPaths)->pluck('id')->all(),
+            'website_images' => $entries->where('disk', 'public')->pluck('path')->values()->all(),
             'uploads' => $uploads->pluck('path')->values()->all(),
             'upload_names' => $uploads->pluck('name', 'path')->all(),
         ];
     }
 
     /**
-     * @param  array{final_reply: string, gallery_photo_ids?: array<int|string>|null, uploads?: array<string>|string|null, upload_names?: array<string, string>|null}  $data
+     * @param  array{final_reply: string, website_images?: array<int, mixed>|null, uploads?: array<string>|string|null, upload_names?: array<string, string>|null}  $data
      */
     private static function saveReply(Prospect $record, array $data): bool
     {
         $entries = array_map(
             fn (ProspectReplyAttachmentData $attachment): array => $attachment->toArray(),
             [
-                ...self::galleryAttachments($data['gallery_photo_ids'] ?? []),
+                ...self::websiteImageAttachments($data['website_images'] ?? []),
                 ...self::uploadAttachments((array) ($data['uploads'] ?? []), $data['upload_names'] ?? []),
             ],
         );
@@ -437,27 +433,23 @@ class ProspectResource extends Resource
     }
 
     /**
-     * @param  array<int|string>|null  $ids
+     * Public-disk attachments for the selected website images, in the carousel's offered order.
+     *
+     * @param  array<int, mixed>|null  $paths
      * @return list<ProspectReplyAttachmentData>
      */
-    private static function galleryAttachments(?array $ids): array
+    private static function websiteImageAttachments(?array $paths): array
     {
-        if (blank($ids)) {
-            return [];
-        }
+        $selected = GalleryPhotoCarousel::make('website_images')->normalizePaths($paths);
 
-        return GalleryPhoto::query()
-            ->whereKey($ids)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (GalleryPhoto $photo): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
+        return array_map(
+            fn (string $path): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
                 disk: 'public',
-                path: $photo->image,
-                originalName: basename($photo->image),
-            ))
-            ->values()
-            ->all();
+                path: $path,
+                originalName: basename($path),
+            ),
+            $selected,
+        );
     }
 
     /**
