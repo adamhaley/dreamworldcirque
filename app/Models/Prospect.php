@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
+use App\Events\RecordPipelineStatusChanged;
 use App\Jobs\ClassifyProspect;
 use App\Jobs\GenerateProspectReply;
 use App\Mail\ProspectReplyMail;
@@ -121,6 +122,27 @@ class Prospect extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Sets the pipeline status by hand, deliberately bypassing markStatus():
+     * nothing is generated, classified or emailed. The admin has already
+     * replied through another channel (such as Gmail) and only needs the
+     * table to reflect it, so reply fields and classification stay untouched.
+     */
+    public function overrideStatus(ProspectStatus $status, ?int $reviewerId): bool
+    {
+        $updated = $this->update([
+            'status' => $status,
+            'reviewed_by_user_id' => $reviewerId,
+            'reviewed_at' => now(),
+        ]);
+
+        if ($updated) {
+            RecordPipelineStatusChanged::dispatch('prospects-pipeline');
+        }
+
+        return $updated;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Tests\Filament\Resources;
 
 use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
+use App\Events\RecordPipelineStatusChanged;
 use App\Filament\Forms\Components\GalleryPhotoCarousel;
 use App\Filament\Resources\Prospects\Pages\ManageProspects;
 use App\Filament\Resources\Prospects\ProspectResource;
@@ -20,6 +21,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Generator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -147,7 +149,7 @@ class ProspectResourceTest extends TestCase
 
         $actions = $component->instance()->getTable()->getFlatRecordActions();
 
-        $this->assertSame(['review'], array_keys($actions));
+        $this->assertSame(['review', 'setStatus'], array_keys($actions));
         $this->assertInstanceOf(ViewAction::class, $actions['review']);
         $this->assertSame('Review', $actions['review']->getLabel());
     }
@@ -510,5 +512,29 @@ class ProspectResourceTest extends TestCase
 
         $this->assertSame(ProspectStatus::Replied, $prospect->refresh()->status);
         Mail::assertSent(ProspectReplyMail::class, fn (ProspectReplyMail $mail): bool => $mail->attachments() === []);
+    }
+
+    #[Test]
+    public function it_sets_status_manually_without_sending_or_generating(): void
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user);
+        Mail::fake();
+        $prospect = Prospect::factory()->draftReady()->withReplyAttachments()->create();
+        Queue::fake();
+        Event::fake([RecordPipelineStatusChanged::class]);
+
+        Livewire::test(ManageProspects::class)
+            ->callTableAction('setStatus', $prospect, ['status' => ProspectStatus::Replied->value])
+            ->assertHasNoTableActionErrors();
+
+        $prospect->refresh();
+        $this->assertSame(ProspectStatus::Replied, $prospect->status);
+        $this->assertSame($user->id, $prospect->reviewed_by_user_id);
+        $this->assertNull($prospect->replied_at);
+        Mail::assertNothingSent();
+        Mail::assertNothingQueued();
+        Queue::assertNothingPushed();
+        Event::assertDispatched(RecordPipelineStatusChanged::class);
     }
 }
