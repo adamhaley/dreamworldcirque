@@ -20,12 +20,12 @@ class ProspectReplyMail extends Mailable
     {
         return $this
             ->subject('Re: Your inquiry to Dream World Cirque')
-            // The account authenticating to send this (see MAIL_USERNAME) must
-            // match MAIL_FROM_ADDRESS exactly, per Exim's anti-spoofing policy
-            // -- that's a dedicated sending-only mailbox, not the inbox Jena
-            // actually reads. Reply-To sends any customer reply to the real
-            // address instead, which already forwards to her Gmail.
-            ->replyTo('info@dreamworldcirque.com', 'Dream World Cirque')
+            // Sent as jena@ (MAIL_USERNAME and MAIL_FROM_ADDRESS must match per
+            // Exim's anti-spoofing policy): a real mailbox, so the From line
+            // invites a reply instead of saying noreply. A forwarder on the
+            // same address routes replies to her Gmail; Reply-To pins it here
+            // so replies still reach her if the env sender ever changes.
+            ->replyTo('jena@dreamworldcirque.com', 'Dream World Cirque')
             // BCC the same inbox so Jena keeps a copy of everything sent from
             // the admin (it forwards to her Gmail).
             ->bcc('info@dreamworldcirque.com')
