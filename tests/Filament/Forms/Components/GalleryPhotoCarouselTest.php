@@ -166,6 +166,20 @@ class GalleryPhotoCarouselTest extends TestCase
     }
 
     #[Test]
+    public function it_orders_a_staged_upload_by_the_token_it_holds_in_the_staged_order(): void
+    {
+        $prospect = Prospect::factory()->draftReady()->create();
+
+        $html = $this->renderedModals(
+            Livewire::test(ManageProspects::class)
+                ->mountAction($this->replyAction('editDraftReply', $prospect))
+                ->set('mountedActions.1.data.uploads.backstage-key', UploadedFile::fake()->image('backstage.png', 200, 200)),
+        );
+
+        $this->assertStringContainsString("stagedOrder('upload:backstage-key')", $html);
+    }
+
+    #[Test]
     public function it_offers_each_pages_hero_circle_and_card_images_after_the_gallery_photos(): void
     {
         $photo = GalleryPhoto::factory()->create();

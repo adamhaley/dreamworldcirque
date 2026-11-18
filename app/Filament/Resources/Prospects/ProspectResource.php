@@ -23,6 +23,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
@@ -388,7 +390,11 @@ class ProspectResource extends Resource
                     ->disk('local')
                     ->directory(fn (Prospect $record): string => self::uploadDirectory($record))
                     ->visibility('private')
-                    ->storeFileNamesIn('upload_names'),
+                    ->storeFileNamesIn('upload_names')
+                    ->afterStateUpdated(fn (Get $get, Set $set, FileUpload $component) => $set(
+                        'website_images',
+                        GalleryPhotoCarousel::make('website_images')->syncUploadTokens($get('website_images'), $component->getRawState()),
+                    )),
             ]);
     }
 
@@ -407,7 +413,10 @@ class ProspectResource extends Resource
 
         return [
             'final_reply' => $record->final_reply ?? $record->generated_reply ?? '',
-            'website_images' => $entries->where('disk', 'public')->pluck('path')->values()->all(),
+            'website_images' => $entries
+                ->map(fn (array $entry): string => $entry['disk'] === 'local' ? GalleryPhotoCarousel::UPLOAD_TOKEN_PREFIX.$entry['path'] : $entry['path'])
+                ->values()
+                ->all(),
             'uploads' => $uploads->pluck('path')->values()->all(),
             'upload_names' => $uploads->pluck('name', 'path')->all(),
         ];
@@ -420,10 +429,7 @@ class ProspectResource extends Resource
     {
         $entries = array_map(
             fn (ProspectReplyAttachmentData $attachment): array => $attachment->toArray(),
-            [
-                ...self::websiteImageAttachments($data['website_images'] ?? []),
-                ...self::uploadAttachments((array) ($data['uploads'] ?? []), $data['upload_names'] ?? []),
-            ],
+            self::orderedAttachments($data['website_images'] ?? [], (array) ($data['uploads'] ?? []), $data['upload_names'] ?? []),
         );
 
         return $record->update([
@@ -433,40 +439,47 @@ class ProspectResource extends Resource
     }
 
     /**
-     * Public-disk attachments for the selected website images, in the carousel's offered order.
+     * Website images and uploads in the order they were staged; any upload missing from the staged
+     * order goes last.
      *
-     * @param  array<int, mixed>|null  $paths
+     * @param  array<int, mixed>|null  $stagedOrder  the carousel's dehydrated state
+     * @param  array<int, mixed>  $uploadPaths
+     * @param  array<string, string>|null  $uploadNames
      * @return list<ProspectReplyAttachmentData>
      */
-    private static function websiteImageAttachments(?array $paths): array
+    private static function orderedAttachments(?array $stagedOrder, array $uploadPaths, ?array $uploadNames): array
     {
-        $selected = GalleryPhotoCarousel::make('website_images')->normalizePaths($paths);
-
-        return array_map(
-            fn (string $path): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
-                disk: 'public',
-                path: $path,
-                originalName: basename($path),
-            ),
-            $selected,
+        $upload = fn (string $path): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
+            disk: 'local',
+            path: $path,
+            originalName: $uploadNames[$path] ?? basename($path),
         );
-    }
+        $attachments = [];
+        $stagedUploads = [];
 
-    /**
-     * @param  array<string>  $paths
-     * @param  array<string, string>|null  $names
-     * @return list<ProspectReplyAttachmentData>
-     */
-    private static function uploadAttachments(array $paths, ?array $names): array
-    {
-        return array_values(array_map(
-            fn (string $path): ProspectReplyAttachmentData => new ProspectReplyAttachmentData(
-                disk: 'local',
-                path: $path,
-                originalName: $names[$path] ?? basename($path),
-            ),
-            array_filter($paths, fn (mixed $path): bool => is_string($path) && $path !== ''),
-        ));
+        foreach (GalleryPhotoCarousel::make('website_images')->normalizePaths($stagedOrder) as $entry) {
+            if (! str_starts_with($entry, GalleryPhotoCarousel::UPLOAD_TOKEN_PREFIX)) {
+                $attachments[] = new ProspectReplyAttachmentData(disk: 'public', path: $entry, originalName: basename($entry));
+
+                continue;
+            }
+
+            $position = substr($entry, strlen(GalleryPhotoCarousel::UPLOAD_TOKEN_PREFIX));
+            $path = ctype_digit($position) ? ($uploadPaths[(int) $position] ?? null) : null;
+
+            if (is_string($path) && $path !== '' && ! isset($stagedUploads[$position])) {
+                $attachments[] = $upload($path);
+                $stagedUploads[$position] = true;
+            }
+        }
+
+        foreach ($uploadPaths as $position => $path) {
+            if (is_string($path) && $path !== '' && ! isset($stagedUploads[(string) $position])) {
+                $attachments[] = $upload($path);
+            }
+        }
+
+        return $attachments;
     }
 
     /**
