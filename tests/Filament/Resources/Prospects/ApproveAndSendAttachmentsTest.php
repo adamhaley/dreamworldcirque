@@ -9,6 +9,7 @@ use App\Mail\ProspectReplyMail;
 use App\Models\GalleryPhoto;
 use App\Models\Prospect;
 use App\Models\User;
+use App\Services\Prospects\ProspectReplyAttachmentService;
 use Closure;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Http\UploadedFile;
@@ -63,7 +64,7 @@ class ApproveAndSendAttachmentsTest extends TestCase
 
             return $mail->hasTo('lead@example.com')
                 && count($sizes) === 3
-                && collect($sizes)->every(fn (array $size): bool => $size['mime'] === 'image/jpeg' && max($size[0], $size[1]) <= 1600);
+                && collect($sizes)->every(fn (array $size): bool => $size['mime'] === 'image/jpeg' && max($size[0], $size[1]) <= ProspectReplyAttachmentService::MAX_LONGEST_SIDE);
         });
     }
 
