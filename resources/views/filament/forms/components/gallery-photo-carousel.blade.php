@@ -66,6 +66,11 @@
             isSelected(path) {
                 return this.selectedPaths().includes(path)
             },
+            stagedOrder(entry) {
+                const position = this.selectedPaths().indexOf(entry)
+
+                return position === -1 ? this.selectedPaths().length : position
+            },
             toggle(path) {
                 const paths = this.selectedPaths()
                 this.state = paths.includes(path) ? paths.filter((selectedPath) => selectedPath !== path) : [...paths, path]
@@ -108,7 +113,7 @@
 
             <div class="gpc-staged-list mt-2 flex flex-wrap gap-2">
                 <template x-for="photo in staged" x-bind:key="photo.path">
-                    <div class="gpc-thumb" x-bind:title="photo.label">
+                    <div class="gpc-thumb" x-bind:title="photo.label" x-bind:style="{ order: stagedOrder(photo.path) }">
                         <div class="gpc-thumb-frame">
                             <img x-bind:src="photo.url" x-bind:alt="photo.alt">
                         </div>
@@ -125,7 +130,7 @@
                 </template>
 
                 @foreach ($stagedUploads as $upload)
-                    <div class="gpc-thumb" title="{{ $upload['name'] }}" wire:key="{{ $getStatePath() }}-upload-{{ $upload['key'] }}" data-staged-upload>
+                    <div class="gpc-thumb" title="{{ $upload['name'] }}" wire:key="{{ $getStatePath() }}-upload-{{ $upload['key'] }}" x-bind:style="{ order: stagedOrder(@js($upload['token'])) }" data-staged-upload>
                         <div class="gpc-thumb-frame">
                             @if ($upload['url'])
                                 <img src="{{ $upload['url'] }}" alt="{{ $upload['name'] }}">

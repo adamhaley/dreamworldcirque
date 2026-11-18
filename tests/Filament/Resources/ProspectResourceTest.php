@@ -345,6 +345,63 @@ class ProspectResourceTest extends TestCase
         $this->assertCount(2, $prospect->reply_attachments);
     }
 
+    public static function stagingOrderProvider(): Generator
+    {
+        yield 'upload, then a website photo' => [true, ['local', 'public']];
+        yield 'website photo, then an upload' => [false, ['public', 'local']];
+    }
+
+    /**
+     * @param  list<string>  $expectedDisks
+     */
+    #[Test]
+    #[DataProvider('stagingOrderProvider')]
+    public function it_saves_attachments_in_the_order_they_were_staged(bool $uploadsFirst, array $expectedDisks): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $prospect = Prospect::factory()->draftReady()->create();
+        $photo = $this->galleryPhotoWithImage();
+        $component = Livewire::test(ManageProspects::class)->mountAction($this->replyAction('editDraftReply', $prospect));
+
+        if ($uploadsFirst) {
+            $component->set('mountedActions.1.data.uploads.stage-key', UploadedFile::fake()->image('stage.png', 200, 200));
+        }
+
+        $component->fillForm(['website_images' => [...$component->get('mountedActions.1.data.website_images'), $photo->image]]);
+
+        if (! $uploadsFirst) {
+            $component->set('mountedActions.1.data.uploads.stage-key', UploadedFile::fake()->image('stage.png', 200, 200));
+        }
+
+        $component->callMountedAction()->assertHasNoFormErrors();
+
+        $this->assertSame($expectedDisks, array_column($prospect->refresh()->reply_attachments, 'disk'));
+    }
+
+    #[Test]
+    public function it_keeps_the_saved_attachment_order_when_a_reply_is_reopened_and_saved(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        $this->actingAs(User::factory()->admin()->create());
+        $photo = $this->galleryPhotoWithImage();
+        $uploadPath = 'prospect-replies/1/stage.png';
+        Storage::disk('local')->put($uploadPath, UploadedFile::fake()->image('stage.png', 200, 200)->getContent());
+        $attachments = [
+            ['disk' => 'local', 'path' => $uploadPath, 'name' => 'stage.png'],
+            ['disk' => 'public', 'path' => $photo->image, 'name' => basename($photo->image)],
+        ];
+        $prospect = Prospect::factory()->draftReady()->create(['reply_attachments' => $attachments]);
+
+        Livewire::test(ManageProspects::class)
+            ->callAction($this->replyAction('editDraftReply', $prospect))
+            ->assertHasNoFormErrors();
+
+        $this->assertEquals($attachments, $prospect->refresh()->reply_attachments);
+    }
+
     #[Test]
     public function it_stores_reply_uploads_privately_on_the_local_disk_under_the_prospect_folder(): void
     {
