@@ -14,11 +14,11 @@ class ProspectReplyAttachmentService
 {
     public const int MAX_ATTACHMENTS = 10;
 
-    public const int MAX_LONGEST_SIDE = 1600;
+    public const int MAX_LONGEST_SIDE = 2560;
 
-    public const int JPEG_QUALITY = 80;
+    public const int JPEG_QUALITY = 90;
 
-    public const int MAX_TOTAL_BYTES = 15 * 1024 * 1024;
+    public const int MAX_TOTAL_BYTES = 18 * 1024 * 1024;
 
     public function __construct(private readonly int $maxTotalBytes = self::MAX_TOTAL_BYTES) {}
 
