@@ -5,6 +5,7 @@ namespace Tests\Mail;
 use App\Mail\ProspectReplyMail;
 use App\Models\GalleryPhoto;
 use App\Models\Prospect;
+use App\Services\Prospects\ProspectReplyAttachmentService;
 use Closure;
 use Illuminate\Mail\Attachment;
 use Illuminate\Support\Facades\Storage;
@@ -81,8 +82,8 @@ class ProspectReplyMailTest extends TestCase
         );
 
         $this->assertSame('image/jpeg', $sizes['upload.jpg']['mime']);
-        $this->assertSame(1600, $sizes['upload.jpg'][0]);
-        $this->assertSame(800, $sizes['upload.jpg'][1]);
+        $this->assertSame(ProspectReplyAttachmentService::MAX_LONGEST_SIDE, $sizes['upload.jpg'][0]);
+        $this->assertSame(ProspectReplyAttachmentService::MAX_LONGEST_SIDE / 2, $sizes['upload.jpg'][1]);
         $this->assertSame('image/jpeg', $sizes['gallery-shot.jpg']['mime']);
         $this->assertSame(100, $sizes['gallery-shot.jpg'][0]);
     }
@@ -113,7 +114,7 @@ class ProspectReplyMailTest extends TestCase
 
         $photo = GalleryPhoto::factory()->create(['image' => 'gallery/gallery-shot.png']);
         Storage::disk('public')->put($photo->image, $this->pngOf(100, 50));
-        Storage::disk('local')->put('reply-attachments/upload.png', $this->pngOf(3200, 1600));
+        Storage::disk('local')->put('reply-attachments/upload.png', $this->pngOf(ProspectReplyAttachmentService::MAX_LONGEST_SIDE * 2, ProspectReplyAttachmentService::MAX_LONGEST_SIDE));
 
         return Prospect::factory()->draftReady()->make([
             'reply_attachments' => [

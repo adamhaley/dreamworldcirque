@@ -46,7 +46,10 @@ class ProspectReplyAttachmentServiceTest extends TestCase
 
         $result = (new ProspectReplyAttachmentService)->prepare([$attachment]);
 
-        $this->assertSame([1600, 1067], $this->dimensions($result[0]->contents));
+        $this->assertSame(
+            [ProspectReplyAttachmentService::MAX_LONGEST_SIDE, (int) round(ProspectReplyAttachmentService::MAX_LONGEST_SIDE * 2 / 3)],
+            $this->dimensions($result[0]->contents),
+        );
     }
 
     #[Test]
@@ -115,6 +118,12 @@ class ProspectReplyAttachmentServiceTest extends TestCase
         $this->expectException(ProspectReplyAttachmentsRejectedException::class);
 
         (new ProspectReplyAttachmentService(maxTotalBytes: 10))->prepare([$attachment]);
+    }
+
+    #[Test]
+    public function it_defaults_the_total_size_cap_to_eighteen_megabytes(): void
+    {
+        $this->assertSame(18 * 1024 * 1024, ProspectReplyAttachmentService::MAX_TOTAL_BYTES);
     }
 
     #[Test]
