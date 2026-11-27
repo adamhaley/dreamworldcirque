@@ -51,8 +51,10 @@ Classify this inbound inquiry.
 Use the human-reviewed examples as guidance. The human decision is correct for each
 example — use them to calibrate what this business considers a valid inquiry, spam,
 or unanswerable, rather than copying any single example blindly. Examples that share this
-inquiry's name, email or message are listed first: treat them as the strongest
-signal, since the same sender often repeats a pattern a human already judged.
+inquiry's name, email or message are listed first, because the same sender often
+repeats a pattern a human already judged. Weigh such an example heavily only when
+this message follows the same pattern; a shared name alone is common among real
+people and must not turn a detailed, genuine booking inquiry into spam.
 
 Human-reviewed examples:
 %s
