@@ -73,24 +73,27 @@ class Prospect extends Model
     }
 
     /**
-     * Excludes anything either the AI or a human has called spam. Shared
+     * Excludes spam: a human's call when there is one, otherwise the AI's,
+     * so a lead a reviewer rescued from AI spam stays visible. Shared
      * between the Prospects table and any other admin view listing
      * prospects, so the definition of "spam" can't drift between them.
      */
     #[Scope]
     protected function notSpam(Builder $query): void
     {
-        $query
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('classification')
-                    ->orWhere('classification', '!=', ProspectClassification::Spam->value);
-            })
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('human_classification')
-                    ->orWhere('human_classification', '!=', ProspectClassification::Spam->value);
-            });
+        $query->where(function (Builder $query): void {
+            $query
+                ->where('human_classification', '!=', ProspectClassification::Spam->value)
+                ->orWhere(function (Builder $query): void {
+                    $query
+                        ->whereNull('human_classification')
+                        ->where(function (Builder $query): void {
+                            $query
+                                ->whereNull('classification')
+                                ->orWhere('classification', '!=', ProspectClassification::Spam->value);
+                        });
+                });
+        });
     }
 
     /**

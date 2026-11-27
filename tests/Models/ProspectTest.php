@@ -147,6 +147,19 @@ class ProspectTest extends TestCase
     }
 
     #[Test]
+    public function not_spam_lets_a_human_valid_override_ai_spam(): void
+    {
+        Queue::fake();
+
+        $rescued = Prospect::factory()->create([
+            'classification' => ProspectClassification::Spam,
+            'human_classification' => ProspectClassification::Valid,
+        ]);
+
+        $this->assertTrue(Prospect::query()->notSpam()->pluck('id')->contains($rescued->id));
+    }
+
+    #[Test]
     public function reply_attachments_round_trip_as_an_array_of_entries(): void
     {
         Queue::fake();
