@@ -137,6 +137,20 @@ class ProspectResourceTest extends TestCase
     }
 
     #[Test]
+    public function it_shows_spam_when_the_hide_spam_filter_is_turned_off(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $aiSpam = Prospect::factory()->create([
+            'classification' => ProspectClassification::Spam,
+            'human_classification' => null,
+        ]);
+
+        Livewire::test(ManageProspects::class)
+            ->filterTable('hide_spam', false)
+            ->assertCanSeeTableRecords([$aiSpam]);
+    }
+
+    #[Test]
     public function it_places_the_review_action_before_the_data_columns(): void
     {
         $this->actingAs(User::factory()->admin()->create());
