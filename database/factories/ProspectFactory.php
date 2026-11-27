@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\ProspectClassification;
 use App\Enums\ProspectStatus;
 use App\Models\Prospect;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -59,6 +60,16 @@ class ProspectFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'status' => ProspectStatus::Spam,
             'review_note' => 'Likely spam per legacy mailbox recovery (2026-09-02 automated flagging).',
+        ]);
+    }
+
+    public function reviewedAs(ProspectClassification $decision): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => ProspectStatus::from($decision->value),
+            'human_classification' => $decision,
+            'reviewed_at' => now(),
+            'reviewed_by_user_id' => User::factory()->admin(),
         ]);
     }
 
