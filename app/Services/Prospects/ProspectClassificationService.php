@@ -14,6 +14,8 @@ class ProspectClassificationService
 {
     private const MaxTrainingExamples = 8;
 
+    private const MaxMatchingExamples = 3;
+
     public function __construct(private ProspectEmailDomainChecker $emailDomainChecker) {}
 
     public function classify(Prospect $prospect): Prospect
@@ -48,7 +50,11 @@ Classify this inbound inquiry.
 
 Use the human-reviewed examples as guidance. The human decision is correct for each
 example — use them to calibrate what this business considers a valid inquiry, spam,
-or unanswerable, rather than copying any single example blindly.
+or unanswerable, rather than copying any single example blindly. Examples that share this
+inquiry's name, email or message are listed first, because the same sender often
+repeats a pattern a human already judged. Weigh such an example heavily only when
+this message follows the same pattern; a shared name alone is common among real
+people and must not turn a detailed, genuine booking inquiry into spam.
 
 Human-reviewed examples:
 %s
@@ -82,29 +88,27 @@ PROMPT,
     }
 
     /**
+     * Reviews of the same sender or message come first, however old they are,
+     * so a repeat spammer stays recognised after newer reviews push its
+     * correction out of the recency slots that follow.
+     *
      * @return Collection<int, Prospect>
      */
     private function reviewedExamplesFor(Prospect $prospect): Collection
     {
-        $examples = $this->reviewedExampleQuery($prospect)
-            ->whereNotNull('classification')
-            ->where(function (Builder $query): void {
-                foreach (ProspectClassification::cases() as $classification) {
-                    $query->orWhere(function (Builder $query) use ($classification): void {
-                        $query
-                            ->where('classification', $classification->value)
-                            ->where('status', '!=', $classification->value);
-                    });
-                }
-            })
-            ->latest('reviewed_at')
-            ->limit(3)
-            ->get();
+        $examples = $this->matchingReviewedExamples($prospect)->merge(
+            $this->reviewedExampleQuery($prospect)
+                ->whereNotNull('classification')
+                ->whereColumn('classification', '!=', 'human_classification')
+                ->latest('reviewed_at')
+                ->limit(3)
+                ->get(),
+        );
 
-        foreach ([ProspectStatus::Valid, ProspectStatus::Spam, ProspectStatus::Unanswerable] as $status) {
+        foreach ([ProspectClassification::Valid, ProspectClassification::Spam, ProspectClassification::Unanswerable] as $decision) {
             $examples = $examples->merge(
                 $this->reviewedExampleQuery($prospect)
-                    ->where('status', $status->value)
+                    ->where('human_classification', $decision->value)
                     ->latest('reviewed_at')
                     ->limit(2)
                     ->get(),
@@ -114,14 +118,40 @@ PROMPT,
         return $examples->unique('id')->take(self::MaxTrainingExamples)->values();
     }
 
+    /**
+     * @return Collection<int, Prospect>
+     */
+    private function matchingReviewedExamples(Prospect $prospect): Collection
+    {
+        $matchingFields = array_filter(
+            ['email' => $prospect->email, 'name' => $prospect->name, 'message' => $prospect->message],
+            fn (?string $value): bool => $value !== null && trim($value) !== '',
+        );
+
+        if ($matchingFields === []) {
+            return new Collection;
+        }
+
+        return $this->reviewedExampleQuery($prospect)
+            ->where(function (Builder $query) use ($matchingFields): void {
+                foreach ($matchingFields as $column => $value) {
+                    $query->orWhere($column, $value);
+                }
+            })
+            ->latest('reviewed_at')
+            ->limit(self::MaxMatchingExamples)
+            ->get();
+    }
+
     /** @return Builder<Prospect> */
     private function reviewedExampleQuery(Prospect $prospect): Builder
     {
         return Prospect::query()
-            ->select(['id', 'name', 'email', 'message', 'classification', 'status', 'reviewed_at', 'reviewed_by_user_id'])
+            ->select(['id', 'name', 'email', 'message', 'classification', 'human_classification', 'reviewed_at'])
             ->whereKeyNot($prospect->id)
             ->whereNotNull('reviewed_at')
-            ->whereNotNull('reviewed_by_user_id');
+            ->whereNotNull('reviewed_by_user_id')
+            ->whereNotNull('human_classification');
     }
 
     /**
@@ -148,7 +178,7 @@ PROMPT,
                 $example->email ?? '(not given)',
                 Str::limit((string) $example->message, 300),
                 $example->classification?->getLabel() ?? 'Unclassified',
-                $example->status->getLabel(),
+                $example->human_classification?->getLabel() ?? 'Unreviewed',
             ))
             ->implode("\n\n");
     }

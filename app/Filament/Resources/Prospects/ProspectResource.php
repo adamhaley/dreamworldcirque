@@ -31,6 +31,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\RecordActionsPosition;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -55,7 +56,6 @@ class ProspectResource extends Resource
     {
         return $table
             ->defaultSort(fn (Builder $query): Builder => self::applyDefaultTableSort($query))
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->notSpam())
             ->columns([
                 IconColumn::make('review_indicator')
                     ->label('')
@@ -134,6 +134,10 @@ class ProspectResource extends Resource
                 TextColumn::make('submitted_at')->dateTime()->sortable(),
             ])
             ->filters([
+                Filter::make('hide_spam')
+                    ->label('Hide spam')
+                    ->default()
+                    ->query(fn (Builder $query): Builder => $query->notSpam()),
                 SelectFilter::make('status')->options([
                     ProspectStatus::PendingReview->value => ProspectStatus::PendingReview->getLabel(),
                     ProspectStatus::DraftReady->value => ProspectStatus::DraftReady->getLabel(),
